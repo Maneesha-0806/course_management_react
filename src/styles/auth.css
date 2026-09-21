@@ -1,0 +1,73 @@
+/* ==========================================================================
+   AcademiaX Authentication Sub-module Layout Customizations
+   ========================================================================== */
+
+/* Layout background enhancements */
+body.bg-light {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+}
+
+/* Auth Card Layout Polishing */
+.card {
+    transition: var(--transition-smooth);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Custom Input Group Extensions */
+.input-group-text {
+    border-color: #cbd5e1;
+    color: var(--text-muted);
+    transition: var(--transition-smooth);
+}
+
+.form-control {
+    border-color: #cbd5e1;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    padding: 0.625rem 0.75rem;
+    transition: var(--transition-smooth);
+}
+
+/* Input group highlight states matching brand indigo */
+.input-group:focus-within .input-group-text {
+    border-color: var(--primary-color);
+    background-color: #e0e7ff !important; /* Soft indigo hint */
+    color: var(--primary-color);
+}
+
+.input-group:focus-within .form-control {
+    border-color: var(--primary-color);
+    background-color: #ffffff !important;
+}
+
+/* Custom Button Scaling for authentication operations */
+.py-2\.5 {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+}
+
+/* Form Validation Smooth Interaction */
+.was-validated .form-control:invalid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(239, 68, 68, 0.15);
+}
+
+.was-validated .form-control:valid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.15);
+}
+
+/* Structural Links and Navigation Inside Gateway */
+.text-primary {
+    color: var(--primary-color) !important;
+    font-weight: 500;
+}
+
+.text-primary:hover {
+    color: var(--primary-hover) !important;
+    text-decoration: underline !important;
+}
+
+/* Utilities for structural fade transitions or loading hooks */
+.spinner-border-sm {
+    --bs-spinner-width: 1rem;
+    --bs-spinner-height: 1rem;
+}

@@ -1,0 +1,67 @@
+/* ==========================================================================
+   AcademiaX Administration Terminal Style Matrix
+   ========================================================================== */
+
+/* Core Layout Border Accents */
+.border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+/* Administrative Table Custom Styles */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table thead {
+    background-color: #f8fafc; /* Slate 50 base */
+}
+
+.table th {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #475569; /* Slate 600 */
+}
+
+.table-hover tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(239, 68, 68, 0.02) !important; /* Extremely soft red fade on hover */
+}
+
+/* Custom Padding and Badges inside System Tables */
+.px-2\.5 {
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+}
+
+.py-2\.5 {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+}
+
+/* Operational Modal Custom Modifications */
+.modal-content {
+    border: none;
+    box-shadow: var(--box-shadow-lg) !important;
+}
+
+.modal-header .btn-close {
+    transition: var(--transition-smooth);
+}
+
+/* Custom Code and Font Monospace Text Styles */
+.font-monospace {
+    font-family: var(--font-mono);
+    letter-spacing: -0.02em;
+}
+
+/* Roster Metrics Progress Custom Adjustments */
+.admin-badge-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+}
