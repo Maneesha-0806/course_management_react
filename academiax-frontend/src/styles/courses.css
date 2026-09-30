@@ -1,0 +1,69 @@
+/* ==========================================================================
+   AcademiaX Course Catalog & Module Layout Stylesheet
+   ========================================================================== */
+
+/* Truncation system to keep varied course description lengths uniform */
+.line-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Limit text block views to exactly 3 lines */
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Course Listing Image Wrapper Utilities */
+.course-card-img-wrap {
+    height: 180px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #1e293b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+}
+
+/* Visual color pop on hovering card items */
+.course-card-item .card {
+    border: 1px solid var(--border-color) !important;
+    transition: var(--transition-smooth);
+}
+
+.course-card-item .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--box-shadow-md) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Course Details Module Breakdown Timelines */
+.curriculum-list .list-group-item {
+    border-left: 3px solid transparent;
+    transition: var(--transition-smooth);
+    background-color: var(--background-light);
+    margin-bottom: 0.5rem;
+    border-radius: var(--border-radius-sm) !important;
+}
+
+.curriculum-list .list-group-item:hover {
+    border-left-color: var(--primary-color);
+    background-color: #ffffff;
+    padding-left: 1.25rem;
+}
+
+/* Sidebar Info Block Customizations */
+.course-meta-sidebar {
+    position: sticky;
+    top: 90px; /* Offset to sit nicely below the sticky header navbar */
+}
+
+/* Micro-interaction for back buttons */
+.back-link {
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+}
+
+.back-link:hover {
+    color: var(--primary-color) !important;
+    transform: translateX(-3px);
+}

@@ -1,0 +1,65 @@
+/* ==========================================================================
+   AcademiaX Split-Screen Classroom Layout & Course Roadmap Stylesheet
+   ========================================================================== */
+
+/* Spacing and visual adjustments for custom badges */
+.p-3\.5 {
+    padding: 1.15rem !important;
+}
+
+.me-3\.5 {
+    margin-right: 1.15rem !important;
+}
+
+/* Roadmap List Element Transformations */
+#courseModulesRoadmap .list-group-item {
+    transition: var(--transition-smooth);
+    border: 1px solid var(--border-color) !important;
+}
+
+/* Interactive hover adjustments for active nodes */
+#courseModulesRoadmap .list-group-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow-md) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Pulse animation utility for the active current lesson */
+.animate-pulse {
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+    50% { 
+        opacity: .6; 
+        transform: scale(1.08); 
+    }
+}
+
+/* Video Player Media Canvas Containment */
+.ratio-16x9 {
+    aspect-ratio: 16 / 9;
+}
+
+video {
+    object-fit: cover;
+    background-color: #000000;
+}
+
+/* Playlist Menu Customizations */
+#playlistGroup .list-group-item {
+    transition: var(--transition-smooth);
+}
+
+#playlistGroup .list-group-item.active {
+    border-color: var(--primary-color) !important;
+}
+
+/* Text Shading for High-Contrast Overlays */
+.text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+}

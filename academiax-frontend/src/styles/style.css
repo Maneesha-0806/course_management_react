@@ -1,0 +1,203 @@
+/* ==========================================================================
+   AcademiaX Global Core Design System & Variables
+   ========================================================================== */
+:root {
+    /* Color Palette */
+    --primary-color: #4f46e5;       /* Deep Indigo */
+    --primary-hover: #4338ca;
+    --secondary-color: #0f172a;     /* Slate Dark */
+    --accent-color: #06b6d4;        /* Cyan Highlight */
+    --background-light: #f8fafc;    /* Clean Off-White */
+    --text-main: #334155;           /* Muted Dark Slate */
+    --text-muted: #64748b;          /* Cool Grey */
+    --border-color: #e2e8f0;        /* Card & Structural Borders */
+    
+    /* Animations & Structural Presets */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --border-radius-sm: 8px;
+    --border-radius-md: 12px;
+    --border-radius-lg: 20px;
+    --box-shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --box-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================================================
+   Global Reset & Base Rules
+   ========================================================================== */
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--background-light);
+    color: var(--text-main);
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+@media (max-width: 767.98px) {
+    .navbar .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .navbar-nav .btn,
+    .navbar-nav .nav-link {
+        margin-top: 0.35rem;
+    }
+
+    .container > .d-flex.justify-content-between {
+        align-items: flex-start !important;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .container > .d-flex.justify-content-between .btn {
+        width: 100%;
+    }
+
+    .list-group-item.d-flex.justify-content-between {
+        align-items: flex-start !important;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
+/* Typography Customizations */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--secondary-color);
+    letter-spacing: -0.02em;
+}
+
+.tracking-wide {
+    letter-spacing: 0.05em;
+}
+
+.tracking-wider {
+    letter-spacing: 0.1em;
+}
+
+/* ==========================================================================
+   Component Overrides & Bootstrap Polish
+   ========================================================================== */
+/* Custom Button System */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transition: var(--transition-smooth);
+    font-weight: 500;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-outline-light:hover {
+    color: var(--secondary-color);
+    background-color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* Interactive Utility Cards */
+.hover-up {
+    transition: var(--transition-smooth);
+    cursor: pointer;
+}
+
+.hover-up:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--box-shadow-md);
+    border-color: var(--primary-color) !important;
+}
+
+/* Custom Icon Box Styling */
+.icon-box {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-md);
+}
+
+/* Navigation System Refinements */
+.navbar {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.navbar-brand img {
+    transition: var(--transition-smooth);
+}
+
+.navbar-brand:hover img {
+    transform: rotate(-10deg) scale(1.05);
+}
+
+/* ==========================================================================
+   Structural Layout Modules (Index / General Layouts)
+   ========================================================================== */
+/* Hero Section Layout Elements */
+.hero-section {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 80% 20%, rgba(79, 70, 229, 0.15) 0%, transparent 50%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Form Structure Defaults (Shared Across Modules) */
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.15);
+}
+
+/* Global Footer Adjustments */
+footer a {
+    transition: var(--transition-smooth);
+}
+
+footer a:hover {
+    color: var(--accent-color) !important;
+    padding-left: 4px; /* subtle slide-out interaction on footer text links */
+}
+
+footer .fa-brands:hover, footer .fa-solid:hover {
+    transform: scale(1.2);
+    padding-left: 0; /* Keep raw social icons centered */
+}
+
+/* Custom Scrollbar Experience */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--background-light);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
