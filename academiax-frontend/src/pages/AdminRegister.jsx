@@ -10,7 +10,7 @@ const AdminRegister = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   
-  const { login } = useContext(AuthContext); // Simulating register+login flow
+  const { register } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -29,9 +29,12 @@ const AdminRegister = () => {
       return;
     }
 
-    // Trigger simulated authentication and redirect
-    await login(email, password, 'admin');
-    navigate('/admin/dashboard');
+    const result = await register({ name, email, password, role: 'admin' });
+    if (result.success) {
+      navigate('/admin/dashboard');
+    } else {
+      setError(result.message);
+    }
   };
 
   return (

@@ -1,77 +1,167 @@
-import { useParams, Link } from 'react-router-dom';
-import { useContext, useState, useEffect } from 'react';
+import { useContext } from 'react';
+import { useParams, Link as RouterLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Box, Button, Container, Flex, Heading, SimpleGrid, Text } from '@chakra-ui/react';
+import { useCourses } from '../context/CourseContext';
+import { useEnrollments } from '../context/EnrollmentContext';
+import { 
+  Box, Flex, Heading, Text, Button, Spinner, 
+  VStack, Divider, Card, CardBody 
+} from '@chakra-ui/react';
 
 const Certificate = () => {
+  // Get the courseId from the URL (e.g., /certificate/fs202)
   const { courseId } = useParams();
   const { user } = useContext(AuthContext);
-  const [courseData, setCourseData] = useState(null);
+  const { courses, loading: coursesLoading } = useCourses();
+  const { enrollments, loading: enrollmentsLoading } = useEnrollments();
 
-  // Mock database to fetch completed course details
-  useEffect(() => {
-    const mockDatabase = {
-      cs101: {
-        title: 'Intro to Computer Science',
-        completionDate: 'September 15, 2026',
-        instructor: 'Dr. Grace Hopper',
-        certificateId: 'ACAD-CS101-84729'
-      },
-      fs202: {
-        title: 'Full Stack Development',
-        completionDate: 'October 10, 2026',
-        instructor: 'Dr. Alan Turing',
-        certificateId: 'ACAD-FS202-39281'
-      }
-    };
-    
-    // Fallback for demo purposes
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCourseData(mockDatabase[courseId] || mockDatabase['cs101']);
-  }, [courseId]);
+  if (coursesLoading || enrollmentsLoading) {
+    return (
+      <Flex justify="center" align="center" minH="50vh">
+        <Spinner size="xl" color="teal.500" />
+        <Text ml={4}>Verifying completion status...</Text>
+      </Flex>
+    );
+  }
 
-  // Native browser print function
+  // 1. Look up the course and enrollment data
+  const course = courses.find((c) => c.id === courseId || c.id === parseInt(courseId));
+  const enrollment = enrollments.find((e) => e.courseId === courseId || e.courseId === parseInt(courseId));
+
+  // 2. Security Guard: Check if the enrollment exists
+  if (!course || !enrollment) {
+    return (
+      <Box p={10} textAlign="center">
+        <Heading size="lg" mb={4}>Record Not Found</Heading>
+        <Text color="gray.500" mb={6}>We couldn't find an enrollment record for this course.</Text>
+        <Button as={RouterLink} to="/my-courses" colorScheme="blue">Back to My Courses</Button>
+      </Box>
+    );
+  }
+
+  // 3. Security Guard: Check if progress is actually 100%
+  if (enrollment.progress < 100) {
+    return (
+      <Box p={10} textAlign="center">
+        <Heading size="lg" mb={4}>Certificate Not Available</Heading>
+        <Text color="gray.500" mb={6}>You must complete 100% of the course modules to earn your certificate.</Text>
+        <Button as={RouterLink} to={`/learning/${course.id}`} colorScheme="teal">
+          Continue Learning
+        </Button>
+      </Box>
+    );
+  }
+
   const handlePrint = () => {
     window.print();
   };
 
-  if (!courseData) return <Container py={12} textAlign="center">Loading certificate...</Container>;
+  // Format today's date for the certificate
+  const completionDate = new Date().toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric'
+  });
 
   return (
-    <Container maxW="container.xl" py={10}>
-      {/* Action Bar - Hidden during print */}
-      <Flex justify="space-between" mb={6} sx={{ '@media print': { display: 'none' } }}><Button as={Link} to="/my-courses" variant="outline">Back to My Courses</Button><Button onClick={handlePrint}>Download / Print</Button></Flex>
+    <Box maxW="container.lg" mx="auto" py={10} px={4}>
+      
+      {/* Action Buttons (Hidden during print) */}
+      <Flex justify="space-between" align="center" mb={6} className="no-print">
+        <Button as={RouterLink} to="/my-courses" variant="ghost" colorScheme="blue">
+          &larr; Back to Dashboard
+        </Button>
+        <Button onClick={handlePrint} colorScheme="teal" shadow="md">
+          Download / Print PDF
+        </Button>
+      </Flex>
 
-      {/* Certificate Wrapper */}
-      <Box bg="gray.100" color="gray.900" minH="600px" p={3} rounded="lg"><Box borderWidth="4px" borderColor="blue.500" p={2} h="full"><Box borderWidth="2px" borderColor="teal.500" p={{ base: 6, md: 16 }} minH="580px" display="flex" flexDirection="column" justifyContent="center" alignItems="center" textAlign="center">
+      {/* Certificate Container */}
+      <Card 
+        id="certificate-container"
+        border="8px double" 
+        borderColor="teal.600" 
+        bg="white" 
+        shadow="2xl" 
+        p={{ base: 4, sm: 8, md: 12 }}
+        textAlign="center"
+      >
+        <CardBody>
+          <VStack spacing={8}>
+            
+            <Text fontSize="2xl" color="teal.700" fontWeight="bold" letterSpacing="widest" textTransform="uppercase">
+              AcademiaX
+            </Text>
+            
+            <Heading size={{ base: 'xl', md: '3xl' }} fontFamily="serif" color="gray.800">
+              Certificate of Completion
+            </Heading>
+            
+            <Text fontSize="xl" color="gray.600" fontStyle="italic">
+              This is to proudly certify that
+            </Text>
+            
+            {/* Dynamically pulls the user's exact API name */}
+            <Heading size={{ base: 'xl', md: '2xl' }} color="blue.600" textDecoration="underline" textUnderlineOffset="10px" overflowWrap="anywhere">
+              {user?.name || "Student Name"}
+            </Heading>
+            
+            <Text fontSize="xl" color="gray.600" fontStyle="italic">
+              has successfully completed the course
+            </Text>
+            
+            {/* Dynamically pulls the course title */}
+            <Heading size="xl" color="gray.800">
+              {course.title || course.courseName}
+            </Heading>
+            
+            <Text color="gray.500" maxW="2xl" fontSize="lg">
+              Demonstrating proficiency in {course.category} by completing all required modules, assessments, and learning objectives.
+            </Text>
+            
+            <Divider my={4} />
+            
+            <Flex w="full" justify="space-around" pt={4} gap={6} wrap="wrap">
+              <Box textAlign="center" w={{ base: 'full', sm: '200px' }}>
+                <Text fontSize="xl" fontWeight="bold">{completionDate}</Text>
+                <Divider borderColor="gray.400" my={2} />
+                <Text fontSize="sm" color="gray.500" textTransform="uppercase">Date Completed</Text>
+              </Box>
               
-              {/* Certificate Content */}
-              <Box mb={6}><Text fontSize="5xl" color="orange.400">Award</Text><Heading size="xl" textTransform="uppercase" color="blue.600" fontFamily="Georgia, serif">
-                  Certificate of Completion
-                </Heading></Box>
+              <Box textAlign="center" w={{ base: 'full', sm: '200px' }}>
+                <Text fontSize="xl" fontWeight="bold" fontFamily="cursive">{course.instructor}</Text>
+                <Divider borderColor="gray.400" my={2} />
+                <Text fontSize="sm" color="gray.500" textTransform="uppercase">Lead Instructor</Text>
+              </Box>
+            </Flex>
 
-              <Text fontSize="lg" color="gray.600" mb={5}>This is to proudly certify that</Text>
-              
-              <Heading size="xl" mb={5} borderBottomWidth="1px" borderColor="gray.500" px={8} pb={2} fontFamily="Georgia, serif">
-                {user ? user.username : 'Student Name'}
-              </Heading>
-              
-              <Text fontSize="lg" color="gray.600" mb={5}>has successfully completed the course</Text>
-              
-              <Heading size="lg" mb={10}>
-                {courseData.title}
-              </Heading>
-
-              {/* Signatures and Date */}
-              <SimpleGrid columns={3} w="full" mt={10} pt={6}><Box textAlign="center"><Text fontWeight="bold" borderBottomWidth="1px" pb={2}>{courseData.completionDate}</Text><Text fontSize="sm" color="gray.600" textTransform="uppercase">Date of Completion</Text></Box><Box /><Box textAlign="center"><Text borderBottomWidth="1px" pb={2} fontFamily="cursive">
-                    {courseData.instructor}
-                  </Text><Text fontSize="sm" color="gray.600" textTransform="uppercase">Lead Instructor</Text></Box></SimpleGrid>
-
-              {/* Certificate ID Footer */}
-              <Text mt={10} pt={6} w="full" textAlign="left" fontSize="sm" color="gray.600">Certificate ID: {courseData.certificateId}</Text>
-
-            </Box></Box></Box>
-    </Container>
+          </VStack>
+        </CardBody>
+      </Card>
+      
+      {/* Print-specific CSS to hide everything else on the page */}
+      <style>
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #certificate-container, #certificate-container * {
+              visibility: visible;
+            }
+            #certificate-container {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              box-shadow: none;
+              border: 12px double #234e52; /* teal.800 */
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+    </Box>
   );
 };
 

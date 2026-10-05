@@ -1,6 +1,8 @@
 import { useContext } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useCourses } from '../context/CourseContext';
+import { useEnrollments } from '../context/EnrollmentContext';
 import { 
   Box, Flex, Grid, Heading, Text, Card, CardBody, 
   Stat, StatLabel, StatNumber, Badge, Button, 
@@ -9,6 +11,12 @@ import {
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
+  const { courses } = useCourses();
+  const { enrollments } = useEnrollments();
+  const completedCourses = enrollments.filter((enrollment) => enrollment.status === 'Completed').length;
+  const activeEnrollment = enrollments.find((enrollment) => enrollment.status !== 'Completed');
+  const activeCourse = courses.find((course) => String(course.id) === String(activeEnrollment?.courseId));
+  const activeProgress = Number(activeEnrollment?.progress) || 0;
 
   return (
     // Box is the Chakra equivalent of a generic <div>, but with style props
@@ -20,7 +28,7 @@ const Dashboard = () => {
           Student Dashboard
         </Badge>
         <Heading size="xl" color="gray.100" letterSpacing="tight">
-          Welcome back, {user ? user.username : 'Student'}
+          Welcome back, {user?.name || 'Student'}
         </Heading>
         <Text color="gray.400" mt={2} fontSize="lg">
           Here is your learning overview for today.
@@ -33,7 +41,7 @@ const Dashboard = () => {
           <CardBody>
             <Stat>
               <StatLabel color="gray.400" textTransform="uppercase" fontWeight="bold">Enrolled Courses</StatLabel>
-              <StatNumber fontSize="5xl" fontWeight="black" color="gray.100">3</StatNumber>
+              <StatNumber fontSize="5xl" fontWeight="black" color="gray.100">{enrollments.length}</StatNumber>
             </Stat>
           </CardBody>
         </Card>
@@ -42,7 +50,8 @@ const Dashboard = () => {
           <CardBody>
             <Stat>
               <StatLabel color="gray.400" textTransform="uppercase" fontWeight="bold">Pending Assignments</StatLabel>
-              <StatNumber fontSize="5xl" fontWeight="black" color="gray.100">2</StatNumber>
+              <StatNumber fontSize="5xl" fontWeight="black" color="gray.100">-</StatNumber>
+              <Text color="gray.500" fontSize="sm">Assignment tracking unavailable</Text>
             </Stat>
           </CardBody>
         </Card>
@@ -51,7 +60,7 @@ const Dashboard = () => {
           <CardBody>
             <Stat>
               <StatLabel color="gray.400" textTransform="uppercase" fontWeight="bold">Certificates</StatLabel>
-              <StatNumber fontSize="5xl" fontWeight="black" color="gray.100">1</StatNumber>
+              <StatNumber fontSize="5xl" fontWeight="black" color="gray.100">{completedCourses}</StatNumber>
             </Stat>
           </CardBody>
         </Card>
@@ -65,22 +74,27 @@ const Dashboard = () => {
           <Heading size="md" mb={4} color="gray.100">Continue Learning</Heading>
           <Card shadow="sm" overflow="hidden">
             <CardBody p={8}>
+              {activeEnrollment && activeCourse ? <>
               <Flex justify="space-between" align="flex-start" mb={4}>
                 <Box>
-                  <Badge colorScheme="purple" mb={3} variant="subtle">Engineering</Badge>
-                  <Heading size="lg" mb={2}>Full Stack Development</Heading>
-                  <Text color="gray.400">Currently on: Module 3 - React State</Text>
+                  <Badge colorScheme="purple" mb={3} variant="subtle">{activeCourse.category}</Badge>
+                  <Heading size="lg" mb={2}>{activeCourse.title || activeCourse.courseName}</Heading>
+                  <Text color="gray.400">Continue where you left off.</Text>
                 </Box>
-                <Badge colorScheme="green" fontSize="sm" px={2} py={1}>85% Complete</Badge>
+                <Badge colorScheme="green" fontSize="sm" px={2} py={1}>{activeProgress}% Complete</Badge>
               </Flex>
               
               {/* Chakra's built-in progress bar */}
-              <Progress value={85} size="sm" colorScheme="blue" borderRadius="full" mb={8} mt={4} />
+              <Progress value={activeProgress} size="sm" colorScheme="blue" borderRadius="full" mb={8} mt={4} />
               
               {/* Notice how we blend Chakra's Button with React Router's Link */}
-              <Button as={RouterLink} to="/learning/fs202" colorScheme="blue" size="lg" width={{ base: 'full', md: 'auto' }}>
+              <Button as={RouterLink} to={`/learning/${activeCourse.id}`} colorScheme="blue" size="lg" width={{ base: 'full', md: 'auto' }}>
                 Resume Learning
               </Button>
+              </> : <Box textAlign="center" py={6}>
+                <Text color="gray.400" mb={4}>You are not enrolled in an active course yet.</Text>
+                <Button as={RouterLink} to="/courses" colorScheme="blue">Browse Courses</Button>
+              </Box>}
             </CardBody>
           </Card>
         </Box>

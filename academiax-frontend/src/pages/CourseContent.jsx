@@ -1,5 +1,6 @@
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useCourses } from '../context/CourseContext';
+import { useEnrollments } from '../context/EnrollmentContext';
 import { 
   Box, Flex, Heading, Text, Button, VStack, Spinner, 
   Progress, Card, CardBody, Badge, Divider 
@@ -9,9 +10,10 @@ const CourseContent = () => {
   // 1. Get the URL parameter that App.jsx defines for this route (/learning/:courseId)
   const { courseId } = useParams();
   const { courses, loading, error } = useCourses();
+  const { enrollments, loading: enrollmentsLoading } = useEnrollments();
 
   // 2. Handle Loading & Error States
-  if (loading) {
+  if (loading || enrollmentsLoading) {
     return (
       <Flex justify="center" align="center" minH="50vh">
         <Spinner size="xl" color="blue.500" />
@@ -42,9 +44,18 @@ const CourseContent = () => {
     );
   }
 
-  // Note: Progress is hardcoded for the visual prototype. 
-  // Later, this would be fetched from an enrollments/progress API.
-  const progress = 35; 
+  const enrollment = enrollments.find((item) => String(item.courseId) === String(course.id));
+  if (!enrollment) {
+    return (
+      <Box p={10} textAlign="center">
+        <Heading size="lg" mb={4}>Enrollment required</Heading>
+        <Text color="gray.500" mb={6}>Enroll in this course before opening its learning roadmap.</Text>
+        <Button as={RouterLink} to={`/courses/${course.id}`} colorScheme="blue">View Course</Button>
+      </Box>
+    );
+  }
+
+  const progress = Number(enrollment.progress) || 0;
 
   // 4. Render the Chakra UI Learning Roadmap
   return (

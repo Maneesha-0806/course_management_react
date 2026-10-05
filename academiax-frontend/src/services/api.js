@@ -2,7 +2,16 @@
 import axios from "axios";
 
 export const AppState = {
-  getUser: () => JSON.parse(localStorage.getItem('user')),
+  getUser: () => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      return null;
+    }
+  },
   setUser: (userData) => localStorage.setItem('user', JSON.stringify(userData)),
   setToken: (token) => localStorage.setItem('token', token),
   clearSession: () => {
@@ -19,12 +28,10 @@ const api = axios.create({
 // Update loginUser to actually check your db.json via the mock API
 export const loginUser = async (email, password) => {
   try {
-    // This asks json-server: "Find an exact match for this email and password"
-    const response = await api.get(`/users?email=${email}&password=${password}`);
+    const response = await api.get('/users', { params: { email } });
     const matchedUsers = response.data;
 
-    // If the array is empty, the user typed the wrong credentials
-    if (matchedUsers.length === 0) {
+    if (matchedUsers.length === 0 || matchedUsers[0].password !== password) {
       return { success: false, message: "Invalid email or password." };
     }
 
@@ -37,6 +44,23 @@ export const loginUser = async (email, password) => {
   } catch (error) {
     console.error("Server error during login:", error);
     return { success: false, message: "Server error. Please try again later." };
+  }
+};
+
+export const registerUser = async (userData) => {
+  try {
+    const existingUsers = await api.get('/users', { params: { email: userData.email } });
+    if (existingUsers.data.length > 0) {
+      return { success: false, message: 'An account with this email already exists.' };
+    }
+
+    const response = await api.post('/users', userData);
+    AppState.setUser(response.data);
+    AppState.setToken('mock-jwt-token-12345');
+    return { success: true, user: response.data };
+  } catch (error) {
+    console.error('Server error during registration:', error);
+    return { success: false, message: 'Server error. Please try again later.' };
   }
 };
 

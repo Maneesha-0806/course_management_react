@@ -1,12 +1,13 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Box, Button, Container, FormControl, FormLabel, Heading, Input, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
+import { Alert, Box, Button, Container, FormControl, FormLabel, Heading, Input, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -14,15 +15,20 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Pass 'admin' as the third parameter to enforce the role
-    await login(email, password, 'admin');
+    setError('');
+    const result = await login(email, password, 'admin');
     
     setIsLoading(false);
-    navigate('/admin/dashboard');
+    if (result.success) {
+      navigate('/admin/dashboard');
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
     <Container maxW="md" py={12}><Box bg="gray.800" rounded="lg" p={8} borderTopWidth="4px" borderColor="red.400"><Heading size="md" textAlign="center" mb={8} color="red.300">Faculty / Admin Login</Heading>
+      {error && <Alert status="error" mb={5}>{error}</Alert>}
         <form onSubmit={handleSubmit}>
           <Stack spacing={5}><FormControl isRequired><FormLabel>Institutional Email</FormLabel><Input 
               type="email" 

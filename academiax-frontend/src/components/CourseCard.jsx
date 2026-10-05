@@ -1,11 +1,39 @@
 import { Link as RouterLink } from 'react-router-dom';
-import { Badge, Button, Card, CardBody, Heading, Image, Stack, Text } from '@chakra-ui/react';
+import { Card, CardBody, Image, Heading, Text, Badge, Button, VStack, Flex } from '@chakra-ui/react';
 
-const CourseCard = ({ id, title, description, category, imageUrl }) => (
-  <Card h="full" overflow="hidden" transition="all 0.2s" _hover={{ transform: 'translateY(-4px)', shadow: 'xl', borderColor: 'brand.400' }}>
-    <Image src={imageUrl || 'https://placehold.co/600x400/1a202c/81e6d9?text=Course+Image'} alt={title} h="180px" objectFit="cover" />
-    <CardBody><Stack h="full" spacing={3}><Badge alignSelf="flex-start" colorScheme="teal">{category}</Badge><Heading size="md">{title}</Heading><Text color="gray.400" flex="1">{description}</Text><Button as={RouterLink} to={`/courses/${id}`} variant="outline" width="full">View Details</Button></Stack></CardBody>
-  </Card>
-);
+const CourseCard = ({ id, title, description, category, imageUrl }) => {
+  return (
+    <Card shadow="sm" _hover={{ shadow: 'md', transform: 'translateY(-2px)' }} transition="all 0.2s" height="100%">
+      {/* Render image if provided, otherwise a fallback colored box */}
+      {imageUrl ? (
+        <Image src={imageUrl} alt={title} height="160px" objectFit="cover" borderTopRadius="md" />
+      ) : (
+        <Flex height="160px" bg="blue.500" borderTopRadius="md" align="center" justify="center">
+          <Heading size="md" color="white" px={4} textAlign="center">{title}</Heading>
+        </Flex>
+      )}
+      
+      <CardBody>
+        <VStack align="stretch" spacing={3} height="100%">
+          <Flex justify="space-between" align="flex-start">
+            <Badge colorScheme="purple" borderRadius="md">{category || 'General'}</Badge>
+          </Flex>
+          
+          <Heading size="md" color="gray.800" noOfLines={2}>
+            {title}
+          </Heading>
+          
+          <Text color="gray.600" fontSize="sm" noOfLines={3} flex="1">
+            {description}
+          </Text>
+          
+          <Button as={RouterLink} to={`/courses/${id}`} colorScheme="blue" size="sm" mt="auto">
+            View Details
+          </Button>
+        </VStack>
+      </CardBody>
+    </Card>
+  );
+};
 
 export default CourseCard;

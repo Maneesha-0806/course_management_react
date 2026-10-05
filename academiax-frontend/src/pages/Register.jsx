@@ -1,13 +1,14 @@
 import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Box, Button, Container, FormControl, FormLabel, Heading, Input, Link as ChakraLink, Select, Stack, Text } from '@chakra-ui/react';
+import { Alert, Box, Button, Container, FormControl, FormLabel, Heading, Input, Link as ChakraLink, Select, Stack, Text } from '@chakra-ui/react';
 
 const Register = () => {
-  const { login } = useContext(AuthContext);
+  const { register } = useContext(AuthContext);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', email: '', department: 'Engineering', password: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (event) => {
     setFormData({ ...formData, [event.target.name]: event.target.value });
@@ -15,14 +16,21 @@ const Register = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setError('');
     setIsLoading(true);
-    await login(formData.email, formData.password, 'student');
-    navigate('/dashboard');
+    const result = await register({ ...formData, role: 'student' });
+    setIsLoading(false);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
     <Container maxW="lg" py={12}><Box bg="gray.800" rounded="lg" p={8} shadow="lg">
         <Heading size="md" textAlign="center" mb={8}>Student Registration</Heading>
+        {error && <Alert status="error" mb={5}>{error}</Alert>}
         <form onSubmit={handleSubmit}>
           <Stack spacing={5}>
             <FormControl isRequired><FormLabel htmlFor="register-name">Full Name</FormLabel><Input id="register-name" name="name" type="text" placeholder="Jane Doe" value={formData.name} onChange={handleChange} /></FormControl>

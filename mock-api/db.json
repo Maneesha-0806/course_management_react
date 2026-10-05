@@ -13,6 +13,14 @@
       "email": "test@academiax.edu",
       "password": "password123",
       "role": "admin"
+    },
+    {
+      "name": "Maneesha C A",
+      "email": "maneeshaca08@gmail.com",
+      "department": "Engineering",
+      "password": "123456",
+      "role": "student",
+      "id": "dA6TPmNKqq8"
     }
   ],
   "courses": [
@@ -95,6 +103,17 @@
       "content": "for i in range(10):\n    print('Hello World')",
       "grade": "95/100",
       "feedback": "Excellent work, Alice! Perfectly executed."
+    },
+    {
+      "student": "Jane Doe",
+      "course": "Full Stack Development",
+      "assignmentTitle": "Build a REST API",
+      "date": "Oct 5, 2026",
+      "status": "Graded",
+      "content": "4erdgfbc",
+      "grade": "A",
+      "feedback": "defrregf",
+      "id": "WpBxUP01_q0"
     }
   ],
   "enrollments": [
@@ -111,6 +130,20 @@
       "courseId": "cs101",
       "progress": 100,
       "status": "Completed"
+    },
+    {
+      "userId": "1",
+      "courseId": "6OqU1TM2-fw",
+      "progress": 0,
+      "status": "Ongoing",
+      "id": "yiNIYrluZ_c"
+    },
+    {
+      "userId": "dA6TPmNKqq8",
+      "courseId": "cs101",
+      "progress": 50,
+      "status": "Ongoing",
+      "id": "wmDGsrypxco"
     }
   ],
   "notifications": [
@@ -118,7 +151,7 @@
       "id": "1",
       "userId": 1,
       "message": "Your assignment 'Variables & Loops' has been graded.",
-      "isRead": false,
+      "isRead": true,
       "date": "2026-09-10T10:00:00Z"
     },
     {

@@ -1,114 +1,183 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Alert, Badge, Box, Button, Container, FormControl, FormLabel, Heading, Input, SimpleGrid, Stack, Text, Textarea } from '@chakra-ui/react';
+import { useState, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { useEnrollments } from '../context/EnrollmentContext';
+import { useCourses } from '../context/CourseContext';
+import { useSubmissions } from '../context/SubmissionContext';
+import { 
+  Alert, Box, Grid, Heading, Text, VStack, FormControl, 
+  FormLabel, Select, Input, Textarea, Button, Card, 
+  CardBody, Badge, Flex, Spinner 
+} from '@chakra-ui/react';
 
 const Assignments = () => {
-  // 1. Mock database of assignments
-  const [assignments, setAssignments] = useState([
-    { 
-      id: 1, 
-      courseId: 'fs202',
-      course: 'Full Stack Development', 
-      title: 'Build a REST API', 
-      dueDate: 'Oct 15, 2026', 
-      status: 'pending', 
-      description: 'Create a Node.js REST API using Express and MongoDB. Include endpoints for GET, POST, PUT, and DELETE. Submit your GitHub repository link below.' 
-    },
-    { 
-      id: 2, 
-      courseId: 'ds300',
-      course: 'Data Structures', 
-      title: 'Binary Tree Implementation', 
-      dueDate: 'Oct 20, 2026', 
-      status: 'pending', 
-      description: 'Implement a Binary Search Tree in Python with insert, delete, and search methods. Upload your .py file.' 
-    },
-    { 
-      id: 3, 
-      courseId: 'cs101',
-      course: 'Intro to Computer Science', 
-      title: 'Variables & Loops', 
-      dueDate: 'Sep 10, 2026', 
-      status: 'submitted', 
-      description: 'Write a simple Python script using a for loop.' 
-    }
-  ]);
+  const { user } = useContext(AuthContext);
+  const { enrollments, loading: enrollmentsLoading } = useEnrollments();
+  const { courses, loading: coursesLoading } = useCourses();
+  const { submissions, loading: submissionsLoading, error: submissionsError, addSubmission } = useSubmissions();
 
-  // 2. Track the currently selected assignment and form input
-  const [selectedAssignment, setSelectedAssignment] = useState(assignments[0]);
-  const [submissionText, setSubmissionText] = useState('');
+  // Form State
+  const [selectedCourseName, setSelectedCourseName] = useState("");
+  const [assignmentTitle, setAssignmentTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 3. Handle the submission form
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Update the assignment status to 'submitted' in our local state
-    const updatedAssignments = assignments.map(a => 
-      a.id === selectedAssignment.id ? { ...a, status: 'submitted' } : a
+  if (enrollmentsLoading || coursesLoading || submissionsLoading) {
+    return (
+      <Flex justify="center" align="center" minH="50vh">
+        <Spinner size="xl" color="blue.500" />
+        <Text ml={4}>Loading your assignments...</Text>
+      </Flex>
     );
+  }
+
+  // Generate the list of courses the student is enrolled in for the dropdown
+  const enrolledCourses = enrollments
+    .map(enr => courses.find(c => c.id === enr.courseId))
+    .filter(Boolean);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    // Format date to match db.json schema (e.g., "Oct 14, 2026")
+    const formattedDate = new Date().toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+
+    const newSubmission = {
+      student: user.name,
+      course: selectedCourseName,
+      assignmentTitle,
+      date: formattedDate,
+      status: "Pending",
+      content,
+      grade: "",
+      feedback: ""
+    };
+
+    const result = await addSubmission(newSubmission);
     
-    setAssignments(updatedAssignments);
-    setSelectedAssignment({ ...selectedAssignment, status: 'submitted' });
-    setSubmissionText('');
+    if (result.success) {
+      alert("Assignment submitted successfully!");
+      // Reset form
+      setSelectedCourseName("");
+      setAssignmentTitle("");
+      setContent("");
+    } else {
+      alert(result.message);
+    }
+    
+    setIsSubmitting(false);
   };
 
   return (
-    <Container maxW="container.xl" py={10}><Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={8}><Heading size="lg">Assignments</Heading><Button as={Link} to="/dashboard" variant="outline">Back to Dashboard</Button></Stack>
-      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
-        {/* Sidebar: Assignment List */}
-        <Box bg="gray.800" rounded="lg" overflow="hidden" h="full">
-            <Stack spacing={0}>
-              {assignments.map(assignment => (
-                <button
-                  key={assignment.id}
-                  onClick={() => setSelectedAssignment(assignment)}
-                  style={{ background: selectedAssignment.id === assignment.id ? 'var(--chakra-colors-brand-700)' : undefined, color: 'inherit', border: 0, borderBottom: '1px solid var(--chakra-colors-whiteAlpha-200)', width: '100%', textAlign: 'left' }}
-                >
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}><Text fontSize="sm" color="brand.300">
-                      {assignment.course}
-                    </Text>
-                    {assignment.status === 'submitted' ? (
-                      <Badge colorScheme="green">Submitted</Badge>
-                    ) : (
-                      <Badge colorScheme="yellow">Pending</Badge>
-                    )}</Box><Heading size="sm" mb={1}>{assignment.title}</Heading><Text fontSize="sm" color="gray.400">
-                    Due: {assignment.dueDate}
-                  </Text>
-                </button>
-              ))}
-            </Stack></Box>
+    <Box maxW="container.xl" mx="auto" py={10} px={4}>
+      <Heading mb={2} color="gray.800">Assignments</Heading>
+      <Text color="gray.500" mb={8}>Submit your coursework and view past grades.</Text>
+      {submissionsError && <Alert status="error" mb={6}>{submissionsError}</Alert>}
 
-        {/* Main Content: Assignment Details & Submission */}
-        <Box gridColumn={{ lg: 'span 2' }}>
-          {selectedAssignment ? (
-            <Box bg="gray.800" rounded="lg" p={6}><Stack direction={{ base: 'column', sm: 'row' }} justify="space-between" align="start" mb={5}><Box><Badge colorScheme="teal" mb={2}>{selectedAssignment.course}</Badge><Heading size="md">{selectedAssignment.title}</Heading></Box><Badge colorScheme={selectedAssignment.status === 'submitted' ? 'green' : 'yellow'} fontSize="sm">
-                  {selectedAssignment.status === 'submitted' ? 'Submitted' : 'Pending'}
-                </Badge></Stack><Text color="gray.400">Due Date: <Text as="span" color="gray.100">{selectedAssignment.dueDate}</Text></Text><Box borderTopWidth="1px" borderColor="whiteAlpha.200" my={6} /><Heading size="sm">Instructions</Heading><Text color="gray.400" mt={3}>{selectedAssignment.description}</Text><Box bg="gray.900" rounded="lg" p={5} mt={6}><Heading size="sm" mb={4}>Your Submission</Heading>
-                
-                {selectedAssignment.status === 'submitted' ? (
-                  <Alert status="success">
-                    <Text>
-                      You have successfully submitted this assignment. It is currently pending review by your instructor.
-                    </Text>
-                  </Alert>
-                ) : (
-                  <form onSubmit={handleSubmit}>
-                    <Stack spacing={4}><FormControl isRequired><FormLabel color="gray.400">Provide a link or text submission</FormLabel><Textarea 
-                        rows="4" 
-                        placeholder="Paste your GitHub link or type your answer here..."
-                        value={submissionText}
-                        onChange={(e) => setSubmissionText(e.target.value)}
-                        required
-                      /></FormControl><FormControl><FormLabel color="gray.400">Or upload a file</FormLabel><Input type="file" /></FormControl><Button type="submit" width="full">Submit Assignment</Button></Stack>
-                  </form>
-                )}
-              </Box></Box>
-          ) : (
-            <Box bg="gray.800" rounded="lg" p={12} textAlign="center"><Text color="gray.400" fontSize="lg">Select an assignment to view details.</Text></Box>
-          )}
+      <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={10}>
+        
+        {/* Left Column: Submission Form */}
+        <Box>
+          <Card shadow="sm" borderTop="4px solid" borderColor="blue.500">
+            <CardBody>
+              <Heading size="md" mb={6}>Submit New Assignment</Heading>
+              
+              {enrolledCourses.length === 0 ? (
+                <Text color="red.500">You must be enrolled in a course to submit assignments.</Text>
+              ) : (
+                <form onSubmit={handleSubmit}>
+                  <VStack spacing={4} align="stretch">
+                    
+                    <FormControl isRequired>
+                      <FormLabel>Select Course</FormLabel>
+                      <Select 
+                        placeholder="Choose a course" 
+                        value={selectedCourseName} 
+                        onChange={(e) => setSelectedCourseName(e.target.value)}
+                      >
+                        {enrolledCourses.map((course) => (
+                          <option key={course.id} value={course.title || course.courseName}>
+                            {course.title || course.courseName}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <FormControl isRequired>
+                      <FormLabel>Assignment Title</FormLabel>
+                      <Input 
+                        placeholder="e.g., Build a REST API" 
+                        value={assignmentTitle} 
+                        onChange={(e) => setAssignmentTitle(e.target.value)} 
+                      />
+                    </FormControl>
+
+                    <FormControl isRequired>
+                      <FormLabel>Submission Content or Link</FormLabel>
+                      <Textarea 
+                        placeholder="Paste your code, text, or a link to your repository..." 
+                        rows={5}
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                      />
+                    </FormControl>
+
+                    <Button 
+                      type="submit" 
+                      colorScheme="blue" 
+                      size="lg" 
+                      isLoading={isSubmitting}
+                      loadingText="Submitting..."
+                    >
+                      Submit Assignment
+                    </Button>
+                  </VStack>
+                </form>
+              )}
+            </CardBody>
+          </Card>
         </Box>
-      </SimpleGrid>
-    </Container>
+
+        {/* Right Column: Submission History */}
+        <Box>
+          <Heading size="md" mb={6}>Submission History</Heading>
+          
+          <VStack spacing={4} align="stretch">
+            {submissions.length > 0 ? (
+              submissions.slice().reverse().map((sub) => (
+                <Card key={sub.id} shadow="sm" variant="outline">
+                  <CardBody>
+                    <Flex justify="space-between" align="center" mb={2}>
+                      <Badge colorScheme={sub.status === 'Graded' ? 'green' : 'yellow'}>
+                        {sub.status}
+                      </Badge>
+                      <Text fontSize="sm" color="gray.500">{sub.date}</Text>
+                    </Flex>
+                    
+                    <Heading size="sm" mb={1}>{sub.assignmentTitle}</Heading>
+                    <Text fontSize="sm" color="gray.600" mb={3}>{sub.course}</Text>
+                    
+                    {sub.status === 'Graded' && (
+                      <Box bg="gray.50" p={3} borderRadius="md" mt={2}>
+                        <Text fontWeight="bold" color="blue.600" mb={1}>Grade: {sub.grade}</Text>
+                        <Text fontSize="sm" color="gray.700">Feedback: {sub.feedback}</Text>
+                      </Box>
+                    )}
+                  </CardBody>
+                </Card>
+              ))
+            ) : (
+              <Box p={6} textAlign="center" bg="gray.50" borderRadius="md">
+                <Text color="gray.500">You haven't submitted any assignments yet.</Text>
+              </Box>
+            )}
+          </VStack>
+        </Box>
+
+      </Grid>
+    </Box>
   );
 };
 

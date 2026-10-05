@@ -1,11 +1,12 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Box, Button, Container, FormControl, FormLabel, Heading, Input, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
+import { Alert, Box, Button, Container, FormControl, FormLabel, Heading, Input, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   
   // 1. Bring in global state and routing hooks
   const { login } = useContext(AuthContext);
@@ -15,17 +16,20 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevents the browser from reloading the page
     
-    // Log in as a student
-    await login(email, password, 'student');
-    
-    // 3. Force the redirect to the dashboard!
-    navigate('/dashboard');
+    setError('');
+    const result = await login(email, password, 'student');
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
     <Container maxW="md" py={12}>
       <Box bg="gray.800" borderTopWidth="4px" borderColor="brand.400" rounded="lg" p={8} shadow="lg">
         <Heading size="md" textAlign="center" color="brand.300" mb={8}>Student Login</Heading>
+        {error && <Alert status="error" mb={5}>{error}</Alert>}
         <form onSubmit={handleSubmit}>
           <Stack spacing={5}>
             <FormControl isRequired><FormLabel>Email Address</FormLabel><Input 

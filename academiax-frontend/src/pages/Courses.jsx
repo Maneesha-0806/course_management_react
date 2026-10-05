@@ -1,35 +1,52 @@
 import { useCourses } from "../context/CourseContext";
 import CourseCard from "../components/CourseCard";
-// import your Chakra UI layout components here like <Grid> or <Box>
+import { Box, Grid, Heading, Text, Flex, Spinner } from '@chakra-ui/react';
 
 function Courses() {
-  // Destructure the values from our new context
+  // Extract data from the global CourseContext
   const { courses, loading, error } = useCourses();
 
+  if (loading) {
+    return (
+      <Flex justify="center" align="center" minH="50vh">
+        <Spinner size="xl" color="blue.500" />
+        <Text ml={4}>Loading course catalog...</Text>
+      </Flex>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box maxW="container.xl" mx="auto" py={10} textAlign="center">
+        <Text color="red.500" fontSize="lg">{error}</Text>
+      </Box>
+    );
+  }
+
   return (
-    <div className="container mt-5">
-      <h2>Course Catalog</h2>
+    <Box maxW="container.xl" mx="auto" py={10} px={4}>
+      <Heading mb={2} color="gray.800">Course Catalog</Heading>
+      <Text color="gray.500" mb={8}>Discover and enroll in our latest courses.</Text>
       
-      {/* Lecturer's conditional rendering patterns */}
-      {loading && <p>Loading courses...</p>}
-      {error && <p>{error}</p>}
-      
-      {!loading && !error && (
-        <div className="row">
+      {!loading && !error && courses.length > 0 ? (
+        <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }} gap={6}>
           {courses.map((course) => (
-            <div className="col-md-4 mb-4" key={course.id}>
-              <CourseCard
-                image={course.image}
-                alt={course.courseName}
-                title={course.courseName}
-                description={course.overview}
-                courseKey={course.id}
-              />
-            </div>
+            <CourseCard
+              key={course.id}
+              id={course.id}
+              title={course.title || course.courseName} // Fallback to handle both schemas
+              description={course.description || course.overview}
+              category={course.category}
+              imageUrl={course.image || course.imageUrl}
+            />
           ))}
-        </div>
+        </Grid>
+      ) : (
+        <Box textAlign="center" py={10} bg="gray.50" borderRadius="md">
+          <Text color="gray.500">No courses available at the moment.</Text>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
 

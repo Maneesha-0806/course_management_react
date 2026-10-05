@@ -1,16 +1,25 @@
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import { useState, useContext } from 'react';
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useCourses } from '../context/CourseContext';
+import { useEnrollments } from '../context/EnrollmentContext';
+import { AuthContext } from '../context/AuthContext';
 import { 
   Box, Heading, Text, Badge, Button, Flex, 
-  // eslint-disable-next-line no-unused-vars
-  VStack, Spinner, Divider, Card, CardBody, List, ListItem, ListIcon 
+  VStack, Spinner, Divider, Card, CardBody 
 } from '@chakra-ui/react';
 
 const CourseDetails = () => {
-  const { id } = useParams(); // Get the course ID from the URL
-  const { courses, loading, error } = useCourses(); // Pull data from your mock API
+  const { id } = useParams(); 
+  const navigate = useNavigate();
+  
+  // Pull in our global contexts
+  const { courses, loading, error } = useCourses();
+  const { enrollInCourse } = useEnrollments();
+  const { user } = useContext(AuthContext);
 
-  // 1. Handle API Loading and Error States
+  // Local state to show a loading spinner on the button while saving
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
   if (loading) {
     return (
       <Flex justify="center" align="center" minH="50vh">
@@ -27,11 +36,8 @@ const CourseDetails = () => {
     );
   }
 
-  // 2. Find the exact course from the API context
-  // We check both string and integer just in case JSON server types differ
   const course = courses.find((c) => c.id === id || c.id === parseInt(id));
 
-  // 3. Handle 404 / Not Found
   if (!course) {
     return (
       <Box maxW="container.md" mx="auto" py={10} textAlign="center">
@@ -44,7 +50,31 @@ const CourseDetails = () => {
     );
   }
 
-  // 4. Render the Chakra UI Layout
+  // The new enrollment handler
+  const handleEnroll = async () => {
+    if (!user) {
+      alert("Please log in to enroll in courses.");
+      navigate('/login');
+      return;
+    }
+
+    if (user.role === 'admin') {
+      alert("Administrators cannot enroll in courses.");
+      return;
+    }
+
+    setIsEnrolling(true);
+    try {
+      await enrollInCourse(course.id);
+      navigate(`/enrollment-success?id=${encodeURIComponent(course.id)}`);
+    } catch (err) {
+      console.error("Enrollment failed:", err);
+      alert("Unable to complete enrollment. Please try again.");
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
   return (
     <Box maxW="container.lg" mx="auto" py={10} px={4}>
       <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
@@ -117,9 +147,11 @@ const CourseDetails = () => {
 
                 <Divider />
                 
+                {/* The updated button with the onClick handler and loading state */}
                 <Button 
-                  as={RouterLink} 
-                  to="/enrollment-success" 
+                  onClick={handleEnroll}
+                  isLoading={isEnrolling}
+                  loadingText="Enrolling..."
                   colorScheme="blue" 
                   size="lg" 
                   width="full"
