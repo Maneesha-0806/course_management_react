@@ -1,26 +1,113 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Badge, Box, Button, Container, Flex, FormControl, FormLabel, Heading, Input, Select, SimpleGrid, Stack, Text, Textarea } from '@chakra-ui/react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useCourses } from '../context/CourseContext';
+import { Box, Button, FormControl, FormLabel, Input, Select, Textarea, Heading, VStack } from '@chakra-ui/react';
 
 const CourseForm = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // Get the ID from the URL if it exists
   const navigate = useNavigate();
+  const { courses, addCourse, updateCourse } = useCourses(); 
+
+  // Form state
+  const [courseName, setCourseName] = useState("");
+  const [courseCode, setCourseCode] = useState("");
+  const [instructor, setInstructor] = useState("");
+  const [duration, setDuration] = useState("");
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+
   const isEditMode = Boolean(id);
-  const [formData, setFormData] = useState({ title: '', category: 'Engineering', description: '', status: 'Draft' });
-  // eslint-disable-next-line react-hooks/purity
-  const [modules, setModules] = useState([{ id: Date.now(), title: '', duration: '' }]);
+
+  // Load existing data if in Edit Mode
   useEffect(() => {
-    if (isEditMode && id === 'fs202') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFormData({ title: 'Full Stack Development', category: 'Engineering', description: 'Master the MERN stack. Build scalable web applications.', status: 'Active' });
-      setModules([{ id: 1, title: 'Frontend Foundations', duration: '2h 15m' }, { id: 2, title: 'React Single Page Apps', duration: '3h 45m' }]);
+    if (isEditMode && courses.length > 0) {
+      const existingCourse = courses.find((item) => item.id === id || item.id === parseInt(id));
+      if (existingCourse) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCourseName(existingCourse.courseName || existingCourse.title || "");
+        setCourseCode(existingCourse.courseCode || "");
+        setInstructor(existingCourse.instructor || "");
+        setDuration(existingCourse.duration || "");
+        setCategory(existingCourse.category || "");
+        setDescription(existingCourse.description || existingCourse.overview || "");
+      }
     }
-  }, [id, isEditMode]);
-  const handleInputChange = (event) => setFormData({ ...formData, [event.target.name]: event.target.value });
-  const handleAddModule = () => setModules([...modules, { id: Date.now(), title: '', duration: '' }]);
-  const handleRemoveModule = (moduleId) => { if (modules.length > 1) setModules(modules.filter(module => module.id !== moduleId)); };
-  const handleModuleChange = (moduleId, field, value) => setModules(modules.map(module => module.id === moduleId ? { ...module, [field]: value } : module));
-  const handleSubmit = (event) => { event.preventDefault(); console.log('Submitting Course:', { ...formData, modules }); navigate('/admin/courses'); };
-  return <Container maxW="container.xl" py={10}><Flex justify="space-between" align={{ base: 'start', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={4} mb={8}><Box><Badge colorScheme="red" mb={2}>Faculty Portal</Badge><Heading size="lg">{isEditMode ? 'Edit Course' : 'Create New Course'}</Heading></Box><Button as={Link} to="/admin/courses" variant="outline">Cancel</Button></Flex><form onSubmit={handleSubmit}><SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}><Stack spacing={6} gridColumn={{ lg: 'span 2' }}><Box bg="gray.800" rounded="lg" p={6}><Heading size="sm" mb={5}>Course Information</Heading><Stack spacing={5}><FormControl isRequired><FormLabel>Course Title</FormLabel><Input name="title" value={formData.title} onChange={handleInputChange} /></FormControl><FormControl isRequired><FormLabel>Description</FormLabel><Textarea name="description" rows={4} value={formData.description} onChange={handleInputChange} /></FormControl><SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}><FormControl><FormLabel>Category</FormLabel><Select name="category" value={formData.category} onChange={handleInputChange}><option value="Engineering">Engineering</option><option value="Science">Science</option><option value="Arts">Arts</option></Select></FormControl><FormControl><FormLabel>Status</FormLabel><Select name="status" value={formData.status} onChange={handleInputChange}><option value="Draft">Draft</option><option value="Active">Active</option></Select></FormControl></SimpleGrid></Stack></Box><Box bg="gray.800" rounded="lg" p={6}><Flex justify="space-between" align="center" mb={5}><Heading size="sm">Curriculum Modules</Heading><Button type="button" size="sm" variant="outline" onClick={handleAddModule}>Add Module</Button></Flex><Stack spacing={4}>{modules.map((module, index) => <SimpleGrid key={module.id} columns={{ base: 1, md: 12 }} spacing={3} alignItems="center" bg="gray.900" p={4} rounded="md"><Text gridColumn={{ md: 'span 1' }} textAlign="center" color="gray.400">{index + 1}</Text><Input gridColumn={{ md: 'span 6' }} placeholder="Module Title" value={module.title} onChange={(event) => handleModuleChange(module.id, 'title', event.target.value)} required /><Input gridColumn={{ md: 'span 3' }} placeholder="Duration (e.g. 2h)" value={module.duration} onChange={(event) => handleModuleChange(module.id, 'duration', event.target.value)} required /><Button type="button" gridColumn={{ md: 'span 2' }} variant="outline" colorScheme="red" onClick={() => handleRemoveModule(module.id)} isDisabled={modules.length === 1}>Remove</Button></SimpleGrid>)}</Stack></Box></Stack><Box bg="gray.800" rounded="lg" p={6} alignSelf="start" position="sticky" top="2rem"><Heading size="sm" mb={4}>Publish Settings</Heading><Text color="gray.400" fontSize="sm" mb={6}>Saving this course will immediately update the catalog. Set the status to Draft when it is not ready to publish.</Text><Button type="submit" colorScheme="red" width="full" size="lg">{isEditMode ? 'Save Changes' : 'Create Course'}</Button></Box></SimpleGrid></form></Container>;
+  }, [id, courses, isEditMode]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const coursePayload = {
+      courseName,     // Note: If db.json uses "title", change this key to "title: courseName"
+      courseCode,
+      instructor,
+      duration,
+      category,
+      description,    // Note: If db.json uses "overview", change to "overview: description"
+      level: "Beginner",
+      status: "Active",
+      image: "https://cdn-icons-png.flaticon.com/512/5968/5968350.png" 
+    };
+
+    try {
+      if (isEditMode) {
+        // PUT request
+        await updateCourse(id, coursePayload);
+        alert("Course updated successfully!");
+      } else {
+        // POST request
+        await addCourse(coursePayload);
+        alert("Course added successfully!");
+      }
+      navigate('/admin/courses'); // Return to admin list
+    } catch (error) {
+      console.error("Error saving course:", error);
+      alert("Unable to save course.");
+    }
+  };
+
+  return (
+    <Box maxW="container.md" mx="auto" py={10} px={4}>
+      <Heading mb={6}>{isEditMode ? "Edit Course" : "Add New Course"}</Heading>
+      
+      <form onSubmit={handleSubmit}>
+        <VStack spacing={4} align="stretch">
+          <FormControl isRequired>
+            <FormLabel>Course Name</FormLabel>
+            <Input value={courseName} onChange={(e) => setCourseName(e.target.value)} />
+          </FormControl>
+
+          <FormControl isRequired>
+            <FormLabel>Course Code</FormLabel>
+            <Input value={courseCode} onChange={(e) => setCourseCode(e.target.value)} />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Instructor</FormLabel>
+            <Input value={instructor} onChange={(e) => setInstructor(e.target.value)} />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Category</FormLabel>
+            <Select value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Select category">
+              <option value="Programming">Programming</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Computer Science">Computer Science</option>
+            </Select>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Description</FormLabel>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+          </FormControl>
+
+          <Button type="submit" colorScheme="blue" size="lg" mt={4}>
+            {isEditMode ? "Update Course" : "Add Course"}
+          </Button>
+        </VStack>
+      </form>
+    </Box>
+  );
 };
+
 export default CourseForm;

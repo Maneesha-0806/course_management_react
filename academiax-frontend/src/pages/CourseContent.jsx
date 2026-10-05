@@ -1,70 +1,136 @@
-import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { Badge, Box, Button, Container, Flex, Heading, Progress, Stack, Text } from '@chakra-ui/react';
+import { useParams, Link as RouterLink } from 'react-router-dom';
+import { useCourses } from '../context/CourseContext';
+import { 
+  Box, Flex, Heading, Text, Button, VStack, Spinner, 
+  Progress, Card, CardBody, Badge, Divider 
+} from '@chakra-ui/react';
 
 const CourseContent = () => {
+  // 1. Get the URL parameter that App.jsx defines for this route (/learning/:courseId)
   const { courseId } = useParams();
-  const [courseData, setCourseData] = useState(null);
+  const { courses, loading, error } = useCourses();
 
-  // Mock data representing the course roadmap
-  useEffect(() => {
-    const mockDatabase = {
-      fs202: {
-        title: 'Full Stack Development',
-        progress: 25, // percentage
-        modules: [
-          { id: 'm1', title: 'Frontend Foundations', duration: '2h 15m', completed: true },
-          { id: 'm2', title: 'React Single Page Apps', duration: '3h 45m', completed: false },
-          { id: 'm3', title: 'Node & Express APIs', duration: '4h 20m', completed: false },
-          { id: 'm4', title: 'Database Design with MongoDB', duration: '3h 10m', completed: false }
-        ]
-      },
-      ds300: {
-        title: 'Data Structures',
-        progress: 60,
-        modules: [
-          { id: 'm1', title: 'Arrays & Linked Lists', duration: '2h 05m', completed: true },
-          { id: 'm2', title: 'Stacks & Queues', duration: '2h 30m', completed: true },
-          { id: 'm3', title: 'Trees & Graphs', duration: '3h 40m', completed: false },
-          { id: 'm4', title: 'Hashing & Complexity', duration: '2h 50m', completed: false }
-        ]
-      },
-      cs101: {
-        title: 'Intro to Computer Science',
-        progress: 100,
-        modules: [
-          { id: 'm1', title: 'Variables & Loops', duration: '1h 45m', completed: true },
-          { id: 'm2', title: 'Functions & Logic', duration: '2h 10m', completed: true },
-          { id: 'm3', title: 'Data Structures', duration: '2h 35m', completed: true },
-          { id: 'm4', title: 'Basic Algorithms', duration: '2h 20m', completed: true }
-        ]
-      }
-    };
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCourseData(mockDatabase[courseId] || null);
-  }, [courseId]);
-
-  if (!courseData) {
+  // 2. Handle Loading & Error States
+  if (loading) {
     return (
-      <Container maxW="container.md" py={16} textAlign="center"><Heading>Course not found</Heading><Text color="gray.400" mt={3}>This learning roadmap is not available.</Text><Button as={Link} to="/my-courses" mt={6}>Back to My Courses</Button></Container>
+      <Flex justify="center" align="center" minH="50vh">
+        <Spinner size="xl" color="blue.500" />
+      </Flex>
     );
   }
 
+  if (error) {
+    return (
+      <Box p={10} textAlign="center">
+        <Text color="red.500" fontSize="lg">{error}</Text>
+      </Box>
+    );
+  }
+
+  // 3. Find the course from the global API data
+  const course = courses.find((c) => c.id === courseId || c.id === parseInt(courseId));
+
+  if (!course) {
+    return (
+      <Box p={10} textAlign="center">
+        <Heading size="lg" mb={4}>Course Not Found</Heading>
+        <Text color="gray.500" mb={6}>We couldn't find the learning content you requested.</Text>
+        <Button as={RouterLink} to="/dashboard" colorScheme="blue">
+          Back to Dashboard
+        </Button>
+      </Box>
+    );
+  }
+
+  // Note: Progress is hardcoded for the visual prototype. 
+  // Later, this would be fetched from an enrollments/progress API.
+  const progress = 35; 
+
+  // 4. Render the Chakra UI Learning Roadmap
   return (
-    <Container maxW="container.xl" py={10}>
-      <Flex justify="space-between" align={{ base: 'start', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={4} mb={8}><Box><Button as={Link} to="/my-courses" variant="link" mb={2}>Back to My Courses</Button><Heading size="lg">{courseData.title} - Roadmap</Heading></Box><Button as={Link} to={`/materials?course=${courseId}`} variant="outline">Course Materials</Button></Flex>
+    <Box maxW="container.xl" mx="auto" py={10} px={4}>
+      
+      {/* Header Section */}
+      <Box mb={8}>
+        <Flex justify="space-between" align="flex-start" wrap="wrap" gap={4}>
+          <Box>
+            <Badge colorScheme="green" mb={3} px={2} py={1} borderRadius="md">
+              Active Enrollment
+            </Badge>
+            <Heading size="xl" color="gray.800">
+              {course.title || course.courseName}
+            </Heading>
+            <Text color="gray.500" mt={2} fontSize="lg">
+              Instructor: {course.instructor}
+            </Text>
+          </Box>
+          
+          {/* Optional link to course materials */}
+          <Button as={RouterLink} to={`/materials?course=${course.id}`} variant="outline" colorScheme="blue">
+            Course Materials
+          </Button>
+        </Flex>
+        
+        {/* Progress Bar Widget */}
+        <Box mt={8} bg="white" p={5} borderRadius="lg" shadow="sm" border="1px" borderColor="gray.200">
+          <Flex justify="space-between" mb={2}>
+            <Text fontWeight="bold" fontSize="sm" color="gray.600" textTransform="uppercase">
+              Course Progress
+            </Text>
+            <Text fontWeight="bold" fontSize="sm" color="blue.600">{progress}%</Text>
+          </Flex>
+          <Progress value={progress} colorScheme="blue" borderRadius="full" size="sm" />
+        </Box>
+      </Box>
 
-      {/* Progress Bar */}
-      <Box bg="gray.800" rounded="lg" p={6} mb={10}><Flex justify="space-between" mb={2}><Text fontWeight="bold">Course Progress</Text><Text>{courseData.progress}%</Text></Flex><Progress value={courseData.progress} colorScheme="green" rounded="full" /></Box>
+      <Divider mb={8} />
 
-      {/* Module Roadmap */}
-      <Heading size="md" mb={4}>Modules & Lessons</Heading>
-      <Stack spacing={3}>
-        {courseData.modules.map((mod, index) => (
-          <Flex key={mod.id} bg="gray.800" borderWidth="1px" borderColor="whiteAlpha.200" rounded="lg" p={5} justify="space-between" align={{ base: 'start', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={4}><Flex align="center" gap={4}><Badge colorScheme={mod.completed ? 'green' : 'blue'}>{mod.completed ? 'Complete' : 'Next'}</Badge><Box><Heading size="sm">Module {index + 1}: {mod.title}</Heading><Text color="gray.400" fontSize="sm" mt={1}>Duration: {mod.duration}</Text></Box></Flex><Button as={Link} to={`/learning/${courseId}/video/${mod.id}`} variant={mod.completed ? 'outline' : 'solid'}>{mod.completed ? 'Review Lesson' : 'Start Lesson'}</Button></Flex>
-        ))}
-      </Stack>
-    </Container>
+      {/* Module Roadmap Area */}
+      <Heading size="lg" mb={6} color="gray.700">Learning Roadmap</Heading>
+      
+      <VStack align="stretch" spacing={4}>
+        {course.modules && course.modules.length > 0 ? (
+          course.modules.map((module, index) => {
+            // Ensure we have an ID for routing, fallback to index if missing in db.json
+            const moduleId = module.id || `m${index + 1}`;
+            const moduleTitle = module.title || module;
+            
+            return (
+              <Card key={moduleId} shadow="sm" _hover={{ shadow: 'md', transform: 'translateY(-2px)' }} transition="all 0.2s ease-in-out">
+                <CardBody p={6}>
+                  <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
+                    
+                    <Box>
+                      <Text color="gray.500" fontSize="sm" fontWeight="bold" mb={1} letterSpacing="wide">
+                        MODULE {index + 1} {module.duration && `• ${module.duration}`}
+                      </Text>
+                      <Heading size="md" color="gray.800">{moduleTitle}</Heading>
+                    </Box>
+                    
+                    {/* Links to the VideoPlayer page for this specific module */}
+                    <Button 
+                      as={RouterLink} 
+                      to={`/learning/${course.id}/video/${moduleId}`} 
+                      colorScheme={index === 0 ? "blue" : "gray"}
+                      variant={index === 0 ? "solid" : "outline"}
+                      px={8}
+                    >
+                      {index === 0 ? "Resume" : "Start"}
+                    </Button>
+
+                  </Flex>
+                </CardBody>
+              </Card>
+            );
+          })
+        ) : (
+          <Box p={6} textAlign="center" bg="gray.50" borderRadius="md">
+            <Text color="gray.500">The instructor has not uploaded any modules yet.</Text>
+          </Box>
+        )}
+      </VStack>
+      
+    </Box>
   );
 };
 

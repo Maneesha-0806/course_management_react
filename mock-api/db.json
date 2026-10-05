@@ -1,14 +1,14 @@
 {
   "users": [
     {
-      "id": 1,
+      "id": "1",
       "name": "Jane Doe",
       "email": "student@email.com",
       "password": "password123",
       "role": "student"
     },
     {
-      "id": 2,
+      "id": "2",
       "name": "Faculty Admin",
       "email": "test@academiax.edu",
       "password": "password123",
@@ -17,32 +17,16 @@
   ],
   "courses": [
     {
-      "id": "fs202",
-      "title": "Full Stack Development",
-      "category": "Engineering",
+      "courseName": "Full Stack Development",
+      "courseCode": "FSD101",
       "instructor": "Prof. Alan Turing",
-      "status": "Active",
-      "totalEnrolled": 142,
+      "duration": "",
+      "category": "Engineering",
       "description": "Learn to build modern web applications from frontend to backend.",
-      "modules": [
-        { "id": "m1", "title": "HTML & CSS Fundamentals", "duration": "2 weeks" },
-        { "id": "m2", "title": "JavaScript & DOM Manipulation", "duration": "3 weeks" },
-        { "id": "m3", "title": "React State & Routing", "duration": "3 weeks" }
-      ]
-    },
-    {
-      "id": "ds301",
-      "title": "Data Structures",
-      "category": "Computer Science",
-      "instructor": "Ada Lovelace",
+      "level": "Beginner",
       "status": "Active",
-      "totalEnrolled": 89,
-      "description": "Master trees, graphs, and advanced algorithmic thinking.",
-      "modules": [
-        { "id": "m1", "title": "Arrays & Linked Lists", "duration": "2 weeks" },
-        { "id": "m2", "title": "Stacks & Queues", "duration": "2 weeks" },
-        { "id": "m3", "title": "Trees & Graphs", "duration": "4 weeks" }
-      ]
+      "image": "https://cdn-icons-png.flaticon.com/512/5968/5968350.png",
+      "id": "fs202"
     },
     {
       "id": "cs101",
@@ -53,14 +37,34 @@
       "totalEnrolled": 305,
       "description": "The foundational principles of computing and programming.",
       "modules": [
-        { "id": "m1", "title": "What is a Computer?", "duration": "1 week" },
-        { "id": "m2", "title": "Variables & Loops", "duration": "3 weeks" }
+        {
+          "id": "m1",
+          "title": "What is a Computer?",
+          "duration": "1 week"
+        },
+        {
+          "id": "m2",
+          "title": "Variables & Loops",
+          "duration": "3 weeks"
+        }
       ]
+    },
+    {
+      "courseName": "Data Structures",
+      "courseCode": "DS101",
+      "instructor": "Grace Hopper",
+      "duration": "",
+      "category": "Programming",
+      "description": "",
+      "level": "Beginner",
+      "status": "Active",
+      "image": "https://cdn-icons-png.flaticon.com/512/5968/5968350.png",
+      "id": "6OqU1TM2-fw"
     }
   ],
   "submissions": [
     {
-      "id": 1,
+      "id": "1",
       "student": "Jane Doe",
       "course": "Full Stack Development",
       "assignmentTitle": "Build a REST API",
@@ -71,7 +75,7 @@
       "feedback": ""
     },
     {
-      "id": 2,
+      "id": "2",
       "student": "John Smith",
       "course": "Data Structures",
       "assignmentTitle": "Binary Tree Implementation",
@@ -82,7 +86,7 @@
       "feedback": ""
     },
     {
-      "id": 3,
+      "id": "3",
       "student": "Alice Johnson",
       "course": "Intro to Computer Science",
       "assignmentTitle": "Variables & Loops",
@@ -95,14 +99,14 @@
   ],
   "enrollments": [
     {
-      "id": 1,
+      "id": "1",
       "userId": 1,
       "courseId": "fs202",
       "progress": 85,
       "status": "Ongoing"
     },
     {
-      "id": 2,
+      "id": "2",
       "userId": 1,
       "courseId": "cs101",
       "progress": 100,
@@ -111,18 +115,19 @@
   ],
   "notifications": [
     {
-      "id": 1,
+      "id": "1",
       "userId": 1,
       "message": "Your assignment 'Variables & Loops' has been graded.",
       "isRead": false,
       "date": "2026-09-10T10:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "userId": 1,
       "message": "New module unlocked in Full Stack Development.",
       "isRead": true,
       "date": "2026-10-12T08:30:00Z"
     }
-  ]
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
 }
