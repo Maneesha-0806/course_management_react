@@ -16,7 +16,6 @@ createRoot(document.getElementById("root")).render(
         <CourseProvider>
           <EnrollmentProvider>
             <SubmissionProvider>
-              {/* 2. Add the NotificationProvider here */}
               <NotificationProvider>
                 <App />
               </NotificationProvider>

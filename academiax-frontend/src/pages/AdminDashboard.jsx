@@ -11,26 +11,45 @@ import {
 
 const AdminDashboard = () => {
   // 1. Pull global data from our established contexts
-  const { courses, loading: coursesLoading } = useCourses();
-  const { submissions, loading: submissionsLoading } = useSubmissions();
-  
+  const { courses = [], loading: coursesLoading } = useCourses() || {};
+  const { submissions = [], loading: submissionsLoading } = useSubmissions() || {};
+
   // 2. Fetch all enrollments directly from the API for the dashboard summary
   const [totalEnrollments, setTotalEnrollments] = useState(0);
   const [enrollmentsLoading, setEnrollmentsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAllEnrollments = async () => {
       try {
         const response = await api.get('/enrollments');
-        setTotalEnrollments(response.data.length);
+        const enrollments = Array.isArray(response.data) ? response.data : [];
+
+        if (isMounted) {
+          setTotalEnrollments(enrollments.length);
+        }
       } catch (error) {
         console.error("Failed to fetch global enrollments:", error);
+        if (isMounted) {
+          setTotalEnrollments(0);
+        }
       } finally {
-        setEnrollmentsLoading(false);
+        if (isMounted) {
+          setEnrollmentsLoading(false);
+        }
       }
     };
+
     fetchAllEnrollments();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const safeCourses = Array.isArray(courses) ? courses : [];
+  const safeSubmissions = Array.isArray(submissions) ? submissions : [];
 
   // 3. Handle unified loading state
   if (coursesLoading || submissionsLoading || enrollmentsLoading) {
@@ -43,7 +62,7 @@ const AdminDashboard = () => {
   }
 
   // Filter submissions to find actionable items
-  const pendingSubmissions = submissions.filter(s => s.status === 'Pending');
+  const pendingSubmissions = safeSubmissions.filter((submission) => submission?.status === 'Pending');
 
   return (
     <Box maxW="container.xl" mx="auto" py={10} px={4}>
@@ -67,7 +86,7 @@ const AdminDashboard = () => {
               <StatLabel color="gray.500" fontSize="sm" fontWeight="bold" textTransform="uppercase">
                 Total Courses
               </StatLabel>
-              <StatNumber fontSize="4xl" color="gray.800">{courses.length}</StatNumber>
+              <StatNumber fontSize="4xl" color="gray.800">{safeCourses.length}</StatNumber>
             </Stat>
           </CardBody>
         </Card>

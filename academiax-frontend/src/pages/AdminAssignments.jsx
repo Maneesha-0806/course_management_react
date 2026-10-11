@@ -9,8 +9,8 @@ import {
 
 const AdminAssignments = () => {
   // Pull all submissions and the grading function from our context
-  const { submissions, loading, gradeSubmission } = useSubmissions();
-  
+  const { submissions = [], loading, gradeSubmission } = useSubmissions() || {};
+
   // Chakra UI hook for managing the Modal open/close state
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -19,6 +19,8 @@ const AdminAssignments = () => {
   const [grade, setGrade] = useState("");
   const [feedback, setFeedback] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  const safeSubmissions = Array.isArray(submissions) ? submissions : [];
 
   if (loading) {
     return (
@@ -32,28 +34,40 @@ const AdminAssignments = () => {
   // Open the modal and populate the form with existing data (if any)
   const handleOpenGrading = (submission) => {
     setSelectedSubmission(submission);
-    setGrade(submission.grade || "");
-    setFeedback(submission.feedback || "");
+    setGrade(submission?.grade || "");
+    setFeedback(submission?.feedback || "");
     onOpen();
   };
 
   // Submit the PUT request to the API
   const handleSaveGrade = async () => {
     if (!selectedSubmission) return;
+
+    const trimmedGrade = grade.trim();
+    const trimmedFeedback = feedback.trim();
+
+    if (!trimmedGrade || !trimmedFeedback) {
+      alert("Please provide both a grade and feedback before saving.");
+      return;
+    }
+
     setIsSaving(true);
 
     const updatedData = {
       ...selectedSubmission,
-      grade: grade,
-      feedback: feedback,
-      status: "Graded" // Automatically mark as graded
+      grade: trimmedGrade,
+      feedback: trimmedFeedback,
+      status: "Graded"
     };
 
     const result = await gradeSubmission(selectedSubmission.id, updatedData);
-    
+
     setIsSaving(false);
     if (result.success) {
-      onClose(); // Close the modal on success
+      onClose();
+      setSelectedSubmission(null);
+      setGrade("");
+      setFeedback("");
     } else {
       alert("Failed to save grade. Please try again.");
     }
@@ -76,32 +90,34 @@ const AdminAssignments = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {submissions.length > 0 ? (
-              // Reverse so the newest submissions (like your recent test) appear at the top
-              submissions.slice().reverse().map((sub) => (
-                <Tr key={sub.id}>
-                  <Td fontWeight="bold">{sub.student}</Td>
-                  <Td>{sub.course}</Td>
-                  <Td>
-                    <Text fontWeight="medium">{sub.assignmentTitle}</Text>
-                    <Text fontSize="xs" color="gray.500">Submitted: {sub.date}</Text>
-                  </Td>
-                  <Td>
-                    <Badge colorScheme={sub.status === 'Graded' ? 'green' : 'yellow'}>
-                      {sub.status}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <Button 
-                      size="sm" 
-                      colorScheme={sub.status === 'Graded' ? 'gray' : 'teal'}
-                      onClick={() => handleOpenGrading(sub)}
-                    >
-                      {sub.status === 'Graded' ? 'Edit Grade' : 'Grade'}
-                    </Button>
-                  </Td>
-                </Tr>
-              ))
+            {safeSubmissions.length > 0 ? (
+              safeSubmissions
+                .slice()
+                .reverse()
+                .map((sub) => (
+                  <Tr key={sub.id || `${sub.student}-${sub.assignmentTitle}-${sub.date}`}>
+                    <Td fontWeight="bold">{sub.student || 'Unknown student'}</Td>
+                    <Td>{sub.course || 'Unassigned course'}</Td>
+                    <Td>
+                      <Text fontWeight="medium">{sub.assignmentTitle || 'Untitled assignment'}</Text>
+                      <Text fontSize="xs" color="gray.500">Submitted: {sub.date || 'Date unavailable'}</Text>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={sub.status === 'Graded' ? 'green' : 'yellow'}>
+                        {sub.status || 'Pending'}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <Button 
+                        size="sm" 
+                        colorScheme={sub.status === 'Graded' ? 'gray' : 'teal'}
+                        onClick={() => handleOpenGrading(sub)}
+                      >
+                        {sub.status === 'Graded' ? 'Edit Grade' : 'Grade'}
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))
             ) : (
               <Tr>
                 <Td colSpan={5} textAlign="center" py={6} color="gray.500">

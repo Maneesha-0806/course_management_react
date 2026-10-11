@@ -20,7 +20,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(user?.role === 'admin' ? '/admin/login' : '/login');
   };
 
   return (

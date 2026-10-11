@@ -1,79 +1,82 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useCourses } from '../context/CourseContext'; // Import context
-// Import your existing Chakra UI components...
-import { Box, Button, Table, Thead, Tbody, Tr, Th, Td, Heading, Spinner, Text } from '@chakra-ui/react'; 
+import { Link as RouterLink } from 'react-router-dom';
+import { useCourses } from '../context/CourseContext';
+import { 
+  Box, Heading, Table, Thead, Tbody, Tr, Th, Td, 
+  Button, Flex, Badge, Text, Spinner
+} from '@chakra-ui/react';
 
 const AdminCourses = () => {
-  // 1. Extract courses and deleteCourse from context
-  const { courses, loading, error, deleteCourse } = useCourses(); 
-  const navigate = useNavigate();
+  const { courses, loading, deleteCourse } = useCourses();
 
-  // 2. Create the delete handler with a confirmation prompt
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm("Are you sure you want to delete this course?");
-    if (!confirmed) return;
-
-    try {
+  const handleDelete = async (id, title) => {
+    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
       await deleteCourse(id);
-      alert("Course deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting course:", error);
-      alert("Unable to delete course.");
     }
   };
 
-  // 3. Handle loading and error states for a better UI
-  if (loading) return <Box p={10}><Spinner size="xl" /> <Text>Loading courses...</Text></Box>;
-  if (error) return <Box p={10}><Text color="red.500">{error}</Text></Box>;
+  if (loading) {
+    return (
+      <Flex justify="center" align="center" minH="50vh">
+        <Spinner size="xl" color="teal.500" />
+        <Text ml={4}>Loading courses...</Text>
+      </Flex>
+    );
+  }
 
   return (
     <Box maxW="container.xl" mx="auto" py={10} px={4}>
-      <Heading mb={6}>Manage Courses</Heading>
-      
-      <Button colorScheme="blue" mb={6} onClick={() => navigate('/admin/courses/new')}>
-        Add New Course
-      </Button>
+      <Flex justify="space-between" align="center" mb={8} wrap="wrap" gap={4}>
+        <Box>
+          <Heading mb={2}>Manage Courses</Heading>
+          <Text color="gray.500">Create, edit, and remove courses from the catalog.</Text>
+        </Box>
+        <Button as={RouterLink} to="/admin/courses/new" colorScheme="teal" shadow="md">
+          + Add New Course
+        </Button>
+      </Flex>
 
-      <Box overflowX="auto">
+      <Box overflowX="auto" bg="white" shadow="sm" borderRadius="md" border="1px" borderColor="gray.200">
         <Table variant="simple">
-          <Thead>
+          <Thead bg="gray.50">
             <Tr>
-              <Th>Course Name</Th>
+              <Th>Course Title</Th>
               <Th>Category</Th>
+              <Th>Instructor</Th>
               <Th>Status</Th>
-              <Th>Actions</Th>
+              <Th textAlign="right">Actions</Th>
             </Tr>
           </Thead>
           <Tbody>
-            {/* 4. Map over the API courses instead of local mock data */}
-            {courses.map((course) => (
-              <Tr key={course.id}>
-                {/* Note: Use course.title or courseName depending on your db.json schema */}
-                <Td fontWeight="bold">{course.title || course.courseName}</Td>
-                <Td>{course.category}</Td>
-                <Td>{course.status || 'Active'}</Td>
-                <Td>
-                  {/* Edit button points to the edit route */}
-                  <Button 
-                    as={Link} 
-                    to={`/admin/courses/${course.id}/edit`} 
-                    colorScheme="teal" 
-                    size="sm" 
-                    mr={2}
-                  >
-                    Edit
-                  </Button>
-                  {/* Delete button triggers the API call */}
-                  <Button 
-                    colorScheme="red" 
-                    size="sm" 
-                    onClick={() => handleDelete(course.id)}
-                  >
-                    Delete
-                  </Button>
+            {courses.length > 0 ? (
+              courses.map((course) => (
+                <Tr key={course.id}>
+                  <Td fontWeight="bold" color="gray.800">
+                    {course.title || course.courseName || "Untitled Course"}
+                  </Td>
+                  <Td>{course.category}</Td>
+                  <Td>{course.instructor}</Td>
+                  <Td>
+                    <Badge colorScheme={course.status === 'Active' ? 'green' : 'gray'}>
+                      {course.status || 'Active'}
+                    </Badge>
+                  </Td>
+                  <Td textAlign="right">
+                    <Button as={RouterLink} to={`/admin/courses/${course.id}/edit`} size="sm" colorScheme="blue" mr={2}>
+                      Edit
+                    </Button>
+                    <Button size="sm" colorScheme="red" onClick={() => handleDelete(course.id, course.title || course.courseName)}>
+                      Delete
+                    </Button>
+                  </Td>
+                </Tr>
+              ))
+            ) : (
+              <Tr>
+                <Td colSpan={5} textAlign="center" py={6} color="gray.500">
+                  No courses found in the database.
                 </Td>
               </Tr>
-            ))}
+            )}
           </Tbody>
         </Table>
       </Box>

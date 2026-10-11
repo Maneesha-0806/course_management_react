@@ -13,30 +13,39 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedUser = AppState.getUser();
     if (storedUser && storedUser.id && storedUser.role) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser(storedUser);
+    } else {
+      AppState.clearSession();
     }
     setIsInitializing(false);
   }, []);
 
   const login = async (email, password, expectedRole) => {
     try {
-      // 1. Call the loginUser function from api.js (which checks db.json)
       const response = await loginUser(email, password);
-      
-      // 2. If it succeeds, set the user in global state
+
       if (response.success) {
-        if (expectedRole && response.user.role !== expectedRole) {
+        const authenticatedUser = response.user;
+        const userRole = authenticatedUser?.role;
+
+        if (expectedRole && userRole && userRole !== expectedRole) {
           AppState.clearSession();
+          setUser(null);
           return { success: false, message: 'This account does not have access to this login.' };
         }
-        setUser(response.user);
-        return { success: true, user: response.user };
-      } 
-      
-      // 3. If it fails (wrong password/email), pass the error message back to the UI
+
+        if (!userRole) {
+          AppState.clearSession();
+          setUser(null);
+          return { success: false, message: 'Unable to determine account access.' };
+        }
+
+        setUser(authenticatedUser);
+        return { success: true, user: authenticatedUser };
+      }
+
       return { success: false, message: response.message };
-      
+
     } catch (error) {
       console.error("Login failed:", error);
       return { success: false, message: "An unexpected error occurred." };

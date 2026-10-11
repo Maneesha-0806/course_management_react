@@ -8,8 +8,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   if (isInitializing) return <Center minH="50vh"><VStack><Spinner color="brand.300" size="lg" /><Text color="gray.400">Checking your session...</Text></VStack></Center>;
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  if (!user || !user.role) {
+    return <Navigate to={requiredRole === 'admin' ? '/admin/login' : '/login'} replace />;
   }
 
   if (requiredRole && user.role !== requiredRole) {

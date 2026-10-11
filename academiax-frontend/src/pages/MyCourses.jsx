@@ -7,8 +7,8 @@ import {
 } from '@chakra-ui/react';
 
 const MyCourses = () => {
-  const { enrollments, loading: enrollmentsLoading } = useEnrollments();
-  const { courses, loading: coursesLoading } = useCourses();
+  const { enrollments = [], loading: enrollmentsLoading } = useEnrollments() || {};
+  const { courses = [], loading: coursesLoading } = useCourses() || {};
 
   if (enrollmentsLoading || coursesLoading) {
     return (
@@ -19,56 +19,59 @@ const MyCourses = () => {
     );
   }
 
+  const safeEnrollments = Array.isArray(enrollments) ? enrollments : [];
+
   return (
     <Box maxW="container.xl" mx="auto" py={10} px={4}>
       <Heading mb={2} color="gray.800">My Courses</Heading>
       <Text color="gray.500" mb={8}>Track your progress and continue learning.</Text>
 
-      {enrollments.length > 0 ? (
+      {safeEnrollments.length > 0 ? (
         <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }} gap={6}>
-          {enrollments.map((enrollment) => {
-            // Cross-reference the enrollment API with the course API to get the title/category
-            const course = courses.find(c => c.id === enrollment.courseId);
-            
-            // If the course was deleted by an admin but the enrollment remains, skip rendering
+          {safeEnrollments.map((enrollment) => {
+            const course = courses.find((c) => String(c.id) === String(enrollment.courseId));
+
             if (!course) return null;
 
+            const progress = Number(enrollment.progress) || 0;
+            const courseTitle = course.title || course.courseName || 'Untitled Course';
+
             return (
-              <Card key={enrollment.id} shadow="sm" borderTop="4px solid" borderColor="teal.400" _hover={{ shadow: 'md' }}>
+              <Card key={enrollment.id || `${enrollment.userId}-${enrollment.courseId}`} shadow="sm" borderTop="4px solid" borderColor="teal.400" _hover={{ shadow: 'md' }}>
                 <CardBody>
                   <VStack align="stretch" spacing={4}>
                     <Flex justify="space-between" align="flex-start">
                       <Badge colorScheme={enrollment.status === 'Completed' ? 'green' : 'blue'}>
-                        {enrollment.status}
+                        {enrollment.status || 'Ongoing'}
                       </Badge>
                       <Text fontSize="sm" color="gray.500" fontWeight="bold">
-                        {enrollment.progress}%
+                        {progress}%
                       </Text>
                     </Flex>
 
                     <Box>
-                      <Text fontSize="sm" color="gray.500" mb={1}>{course.category}</Text>
+                      <Text fontSize="sm" color="gray.500" mb={1}>{course.category || 'General'}</Text>
                       <Heading size="md" color="gray.800" noOfLines={2}>
-                        {course.title || course.courseName}
+                        {courseTitle}
                       </Heading>
                     </Box>
 
-                    <Progress 
-                      value={enrollment.progress} 
-                      colorScheme={enrollment.progress === 100 ? "green" : "blue"} 
-                      size="sm" 
-                      borderRadius="full" 
+                    <Progress
+                      value={progress}
+                      colorScheme={progress === 100 ? 'green' : 'blue'}
+                      size="sm"
+                      borderRadius="full"
                     />
 
-                    <Button 
-                      as={RouterLink} 
-                      to={`/learning/${course.id}`} 
-                      colorScheme="teal" 
-                      variant={enrollment.progress === 100 ? "outline" : "solid"}
-                      size="sm" 
+                    <Button
+                      as={RouterLink}
+                      to={`/learning/${course.id}`}
+                      colorScheme="teal"
+                      variant={progress === 100 ? 'outline' : 'solid'}
+                      size="sm"
                       mt={2}
                     >
-                      {enrollment.progress === 100 ? "Review Course" : "Continue Learning"}
+                      {progress === 100 ? 'Review Course' : 'Continue Learning'}
                     </Button>
                   </VStack>
                 </CardBody>

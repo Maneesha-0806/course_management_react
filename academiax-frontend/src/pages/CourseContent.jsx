@@ -9,8 +9,11 @@ import {
 const CourseContent = () => {
   // 1. Get the URL parameter that App.jsx defines for this route (/learning/:courseId)
   const { courseId } = useParams();
-  const { courses, loading, error } = useCourses();
-  const { enrollments, loading: enrollmentsLoading } = useEnrollments();
+  const { courses = [], loading, error } = useCourses() || {};
+  const { enrollments = [], loading: enrollmentsLoading } = useEnrollments() || {};
+
+  const safeCourses = Array.isArray(courses) ? courses : [];
+  const safeEnrollments = Array.isArray(enrollments) ? enrollments : [];
 
   // 2. Handle Loading & Error States
   if (loading || enrollmentsLoading) {
@@ -30,7 +33,7 @@ const CourseContent = () => {
   }
 
   // 3. Find the course from the global API data
-  const course = courses.find((c) => c.id === courseId || c.id === parseInt(courseId));
+  const course = safeCourses.find((c) => String(c.id) === String(courseId));
 
   if (!course) {
     return (
@@ -44,7 +47,7 @@ const CourseContent = () => {
     );
   }
 
-  const enrollment = enrollments.find((item) => String(item.courseId) === String(course.id));
+  const enrollment = safeEnrollments.find((item) => String(item.courseId) === String(course.id));
   if (!enrollment) {
     return (
       <Box p={10} textAlign="center">
@@ -56,11 +59,12 @@ const CourseContent = () => {
   }
 
   const progress = Number(enrollment.progress) || 0;
+  const modules = Array.isArray(course.modules) ? course.modules : [];
 
   // 4. Render the Chakra UI Learning Roadmap
   return (
     <Box maxW="container.xl" mx="auto" py={10} px={4}>
-      
+
       {/* Header Section */}
       <Box mb={8}>
         <Flex justify="space-between" align="flex-start" wrap="wrap" gap={4}>
@@ -69,19 +73,19 @@ const CourseContent = () => {
               Active Enrollment
             </Badge>
             <Heading size="xl" color="gray.800">
-              {course.title || course.courseName}
+              {course.title || course.courseName || 'Untitled Course'}
             </Heading>
             <Text color="gray.500" mt={2} fontSize="lg">
-              Instructor: {course.instructor}
+              Instructor: {course.instructor || 'Instructor not assigned'}
             </Text>
           </Box>
-          
+
           {/* Optional link to course materials */}
           <Button as={RouterLink} to={`/materials?course=${course.id}`} variant="outline" colorScheme="blue">
             Course Materials
           </Button>
         </Flex>
-        
+
         {/* Progress Bar Widget */}
         <Box mt={8} bg="white" p={5} borderRadius="lg" shadow="sm" border="1px" borderColor="gray.200">
           <Flex justify="space-between" mb={2}>
@@ -98,35 +102,34 @@ const CourseContent = () => {
 
       {/* Module Roadmap Area */}
       <Heading size="lg" mb={6} color="gray.700">Learning Roadmap</Heading>
-      
+
       <VStack align="stretch" spacing={4}>
-        {course.modules && course.modules.length > 0 ? (
-          course.modules.map((module, index) => {
-            // Ensure we have an ID for routing, fallback to index if missing in db.json
+        {modules.length > 0 ? (
+          modules.map((module, index) => {
             const moduleId = module.id || `m${index + 1}`;
             const moduleTitle = module.title || module;
-            
+
             return (
               <Card key={moduleId} shadow="sm" _hover={{ shadow: 'md', transform: 'translateY(-2px)' }} transition="all 0.2s ease-in-out">
                 <CardBody p={6}>
                   <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-                    
+
                     <Box>
                       <Text color="gray.500" fontSize="sm" fontWeight="bold" mb={1} letterSpacing="wide">
                         MODULE {index + 1} {module.duration && `• ${module.duration}`}
                       </Text>
                       <Heading size="md" color="gray.800">{moduleTitle}</Heading>
                     </Box>
-                    
+
                     {/* Links to the VideoPlayer page for this specific module */}
-                    <Button 
-                      as={RouterLink} 
-                      to={`/learning/${course.id}/video/${moduleId}`} 
-                      colorScheme={index === 0 ? "blue" : "gray"}
-                      variant={index === 0 ? "solid" : "outline"}
+                    <Button
+                      as={RouterLink}
+                      to={`/learning/${course.id}/video/${moduleId}`}
+                      colorScheme={index === 0 ? 'blue' : 'gray'}
+                      variant={index === 0 ? 'solid' : 'outline'}
                       px={8}
                     >
-                      {index === 0 ? "Resume" : "Start"}
+                      {index === 0 ? 'Resume' : 'Start'}
                     </Button>
 
                   </Flex>
@@ -140,7 +143,7 @@ const CourseContent = () => {
           </Box>
         )}
       </VStack>
-      
+
     </Box>
   );
 };

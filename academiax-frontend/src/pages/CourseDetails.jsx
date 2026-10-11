@@ -9,13 +9,15 @@ import {
 } from '@chakra-ui/react';
 
 const CourseDetails = () => {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const navigate = useNavigate();
-  
+
   // Pull in our global contexts
-  const { courses, loading, error } = useCourses();
+  const { courses = [], loading, error } = useCourses() || {};
   const { enrollInCourse } = useEnrollments();
   const { user } = useContext(AuthContext);
+
+  const safeCourses = Array.isArray(courses) ? courses : [];
 
   // Local state to show a loading spinner on the button while saving
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -36,7 +38,7 @@ const CourseDetails = () => {
     );
   }
 
-  const course = courses.find((c) => c.id === id || c.id === parseInt(id));
+  const course = safeCourses.find((c) => String(c.id) === String(id));
 
   if (!course) {
     return (
@@ -65,8 +67,12 @@ const CourseDetails = () => {
 
     setIsEnrolling(true);
     try {
-      await enrollInCourse(course.id);
-      navigate(`/enrollment-success?id=${encodeURIComponent(course.id)}`);
+      const result = await enrollInCourse(course.id);
+      if (result) {
+        navigate(`/enrollment-success?id=${encodeURIComponent(course.id)}`);
+      } else {
+        alert("This course is already in your learning plan.");
+      }
     } catch (err) {
       console.error("Enrollment failed:", err);
       alert("Unable to complete enrollment. Please try again.");
@@ -75,30 +81,34 @@ const CourseDetails = () => {
     }
   };
 
+  const courseTitle = course.title || course.courseName || 'Untitled Course';
+  const courseDescription = course.description || course.overview || 'No course description available yet.';
+  const modules = Array.isArray(course.modules) ? course.modules : [];
+
   return (
     <Box maxW="container.lg" mx="auto" py={10} px={4}>
       <Flex direction={{ base: 'column', md: 'row' }} gap={8}>
-        
+
         {/* Left Column: Main Course Info */}
         <Box flex="2">
           <Badge colorScheme="purple" mb={3} px={2} py={1} borderRadius="md">
-            {course.category}
+            {course.category || 'General'}
           </Badge>
           <Heading size="2xl" mb={4} color="gray.800">
-            {course.title || course.courseName}
+            {courseTitle}
           </Heading>
-          
+
           <Text fontSize="xl" color="gray.600" mb={6}>
-            {course.description || course.overview}
+            {courseDescription}
           </Text>
 
           <Divider my={8} />
 
           <Heading size="lg" mb={4}>Course Modules</Heading>
-          {course.modules && course.modules.length > 0 ? (
+          {modules.length > 0 ? (
             <VStack align="stretch" spacing={4}>
-              {course.modules.map((module, index) => (
-                <Card key={module.id || index} variant="outline" shadow="sm">
+              {modules.map((module, index) => (
+                <Card key={module.id || `${course.id}-module-${index}`} variant="outline" shadow="sm">
                   <CardBody>
                     <Flex justify="space-between" align="center">
                       <Text fontWeight="bold" fontSize="lg">{module.title || module}</Text>

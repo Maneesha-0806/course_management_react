@@ -39,7 +39,7 @@ course_management_system_react/
 │       ├── App.jsx                # Route table and shared shell
 │       ├── main.jsx               # React root and provider tree
 │       ├── index.css              # Global CSS imported by the entry point if applicable
-│       ├── theme.js               # Custom Chakra theme; currently not wired into main.jsx
+│       ├── theme.js               # Custom Chakra theme wired into ChakraProvider in main.jsx
 │       ├── assets/
 │       ├── components/            # Shared UI and routing components
 │       ├── context/               # Auth and course state providers
@@ -115,14 +115,17 @@ For behavior checks, start the mock API, then start Vite and manually verify:
 
 The application entry point is `academiax-frontend/src/main.jsx`.
 
-Provider tree:
+Actual provider tree in the live app:
 
 ```text
-ChakraProvider
+ChakraProvider theme={theme}
 └── BrowserRouter
     └── AuthProvider
         └── CourseProvider
-            └── App
+            └── EnrollmentProvider
+                └── SubmissionProvider
+                    └── NotificationProvider
+                        └── App
 ```
 
 `App.jsx` renders the shared shell around every route:
@@ -134,19 +137,19 @@ main -> Routes -> route page
 Footer
 ```
 
-This means the navbar and footer appear even on authentication and admin pages unless a future change alters the shell. `ScrollToTop` reacts to location changes and resets scroll position.
+This means the navbar and footer are part of the global layout for all pages, including auth and admin views. `ScrollToTop` resets scroll position whenever the route changes.
 
 ### State ownership
 
-Authentication state is global in `AuthContext`:
+Authentication state is global in `AuthContext` and exposes the following values:
 
 ```js
 {
-  (user, isInitializing, login, logout);
+  (user, isInitializing, login, register, logout);
 }
 ```
 
-Course catalog state is global in `CourseContext`:
+Course state is global in `CourseContext` and exposes:
 
 ```js
 {
@@ -160,7 +163,7 @@ Course catalog state is global in `CourseContext`:
 }
 ```
 
-Most other state is local to individual pages. Refreshing the browser normally loses changes made in these pages because they are not sent to the API or persisted to local storage.
+The app also keeps additional feature state in: `EnrollmentContext`, `SubmissionContext`, and `NotificationContext`.
 
 ## 5. Routing Map
 
@@ -168,41 +171,54 @@ Routes are declared centrally in `academiax-frontend/src/App.jsx`.
 
 ### Public routes
 
-| Path                                  | Page                | Current purpose                                      |
-| ------------------------------------- | ------------------- | ---------------------------------------------------- |
-| `/`                                   | `Home`              | Landing/home experience                              |
-| `/login`                              | `Login`             | Student login form                                   |
-| `/register`                           | `Register`          | Student registration UI; does not create an API user |
-| `/courses`                            | `Courses`           | Course catalog, intended to use `CourseContext`      |
-| `/courses/:id`                        | `CourseDetails`     | Course details from an in-component mock database    |
-| `/enrollment-success`                 | `EnrollmentSuccess` | Enrollment confirmation; reads `id` query parameter  |
-| `/dashboard`                          | `Dashboard`         | Student dashboard, wrapped in `ProtectedRoute`       |
-| `/learning/:courseId`                 | `CourseContent`     | Course roadmap and learning content                  |
-| `/learning/:courseId/video/:moduleId` | `VideoPlayer`       | Module/video view                                    |
-| `/materials`                          | `CourseMaterials`   | Materials view; reads `course` query parameter       |
-| `/my-courses`                         | `MyCourses`         | Student course list and progress                     |
-| `/assignments`                        | `Assignments`       | Student assignment submission UI                     |
-| `/notifications`                      | `Notifications`     | Student notification UI                              |
-| `/certificate/:courseId`              | `Certificate`       | Certificate display/print UI                         |
-| `/forgot-password`                    | `ForgotPassword`    | Password recovery simulation                         |
-| `/reset-password`                     | `ResetPassword`     | Password reset simulation                            |
+| Path               | Page             | Current purpose               |
+| ------------------ | ---------------- | ----------------------------- |
+| `/`                | `Home`           | Landing/home experience       |
+| `/login`           | `Login`          | Student login form            |
+| `/register`        | `Register`       | Student registration UI       |
+| `/courses`         | `Courses`        | Course catalog                |
+| `/courses/:id`     | `CourseDetails`  | Course detail view            |
+| `/forgot-password` | `ForgotPassword` | Password recovery simulation  |
+| `/reset-password`  | `ResetPassword`  | Password reset simulation     |
+| `/admin/login`     | `AdminLogin`     | Admin login form              |
+| `/admin/register`  | `AdminRegister`  | Admin registration simulation |
 
-### Admin routes
+### Protected student routes
 
-All admin routes below use `ProtectedRoute requiredRole="admin"`:
+All student routes below are wrapped in `ProtectedRoute requiredRole="student"`:
 
-| Path                        | Page               | Current purpose                    |
-| --------------------------- | ------------------ | ---------------------------------- |
-| `/admin/login`              | `AdminLogin`       | Admin login form                   |
-| `/admin/register`           | `AdminRegister`    | Admin registration simulation      |
-| `/admin/dashboard`          | `AdminDashboard`   | Faculty/admin metrics and activity |
-| `/admin/courses`            | `AdminCourses`     | Admin course listing and actions   |
-| `/admin/courses/new`        | `CourseForm`       | Course creation form               |
-| `/admin/courses/:id/edit`   | `CourseForm`       | Course edit form                   |
-| `/admin/courses/:id/roster` | `CourseRoster`     | Course roster view                 |
-| `/admin/assignments`        | `AdminAssignments` | Assignment review and grading      |
+| Path                                  | Page                | Current purpose         |
+| ------------------------------------- | ------------------- | ----------------------- |
+| `/dashboard`                          | `Dashboard`         | Student dashboard       |
+| `/enrollment-success`                 | `EnrollmentSuccess` | Enrollment confirmation |
+| `/learning/:courseId`                 | `CourseContent`     | Learning content        |
+| `/materials`                          | `CourseMaterials`   | Course materials        |
+| `/learning/:courseId/video/:moduleId` | `VideoPlayer`       | Video/module view       |
+| `/my-courses`                         | `MyCourses`         | Student course list     |
+| `/assignments`                        | `Assignments`       | Student assignment UI   |
+| `/notifications`                      | `Notifications`     | Student notifications   |
+| `/certificate/:courseId`              | `Certificate`       | Certificate display     |
 
-There is no explicit catch-all or 404 route. An unmatched path renders the shared shell with no route content.
+### Protected admin routes
+
+All admin routes below are wrapped in `ProtectedRoute requiredRole="admin"`:
+
+| Path                        | Page               | Current purpose        |
+| --------------------------- | ------------------ | ---------------------- |
+| `/admin/dashboard`          | `AdminDashboard`   | Faculty/admin overview |
+| `/admin/courses`            | `AdminCourses`     | Course management      |
+| `/admin/courses/new`        | `CourseForm`       | New course creation    |
+| `/admin/courses/:id/edit`   | `CourseForm`       | Edit course            |
+| `/admin/courses/:id/roster` | `CourseRoster`     | Course roster review   |
+| `/admin/assignments`        | `AdminAssignments` | Assignment grading     |
+
+There is an explicit catch-all route:
+
+```jsx
+<Route path="*" element={<NotFound />} />
+```
+
+So unmatched paths render the `NotFound` page instead of silently showing only the shell.
 
 ## 6. Authentication and Authorization
 
@@ -222,22 +238,39 @@ Relevant files:
 - `user`: serialized user object
 - `token`: fixed string `mock-jwt-token-12345`
 
-The token is not real, is never attached to Axios requests, and is not validated by the mock API.
+The token is mock-only and is not attached to real Axios requests. It is used as a lightweight local session marker for the front-end prototype only.
 
-On application initialization, `AuthContext` reads the stored user once. During this period `isInitializing` is true. `ProtectedRoute` shows a loading spinner/message until initialization completes.
+On startup, `AuthContext` restores the saved user and sets `isInitializing` false once the check finishes. `ProtectedRoute` waits while initialization is running and then validates access.
 
 ### Login flow
 
-1. A login page calls `login(email, password)` from `AuthContext`.
+1. The login page calls `login(email, password, expectedRole)` from `AuthContext`.
 2. `AuthContext` calls `loginUser` in `services/api.js`.
-3. `loginUser` performs:
+3. `loginUser` queries the mock API:
 
 ```text
-GET http://localhost:5000/users?email=<email>&password=<password>
+GET http://localhost:5000/users?email=<email>
 ```
 
-4. The first returned user is saved to local storage and React auth state.
-5. The login page navigates after a successful response.
+4. The returned user is checked against the submitted password.
+5. If the role matches the expected role, the user is saved to local storage and React auth state.
+6. The app redirects to the correct dashboard or route after success.
+
+### Role enforcement
+
+The live implementation does enforce the role argument.
+
+```js
+if (expectedRole && response.user.role !== expectedRole) {
+  AppState.clearSession();
+  return {
+    success: false,
+    message: "This account does not have access to this login.",
+  };
+}
+```
+
+This is used by both student and admin login forms.
 
 ### Seed credentials
 
@@ -259,23 +292,21 @@ role: admin
 
 ### Guard behavior
 
-- No user: redirect to `/login`.
+- No valid user: redirect to the relevant login page.
 - `requiredRole="admin"` and non-admin user: redirect to `/dashboard`.
-- A student can access the admin login form, but cannot pass the admin route guard.
-- The `role` argument passed by some login pages is not used by `AuthContext.login`.
-- Student-facing routes such as `/my-courses`, `/assignments`, `/notifications`, and `/certificate/:courseId` are currently not protected even though their names imply authenticated access.
+- `requiredRole="student"` and non-student user: redirect to `/admin/dashboard`.
+- A student cannot access an admin protected route.
+- The route guard is the real source of enforcement; the login screen is also role-aware.
 
 ### Important auth caveats
 
-- Passwords are stored in plaintext in `db.json` and sent in URL query parameters. This is acceptable only for this local mock and must not be copied into a production design.
-- Registration screens do not create users in the API.
-- Password recovery/reset screens do not read or update user records.
-- `Navbar.jsx` displays `user.username`, but seeded users provide `name`; the user display may therefore be blank for students.
-- Admin and student login pages should be checked before changing role-specific navigation because the current role-selection contract is incomplete.
+- Passwords are stored in plaintext in `db.json` for this mock environment.
+- Registration and password-reset screens do not yet create or update real user records in the backend.
+- This is still a frontend prototype, not a production authentication system.
 
 ## 7. API and Persistence
 
-The Axios instance in `src/services/api.js` is the single shared API client:
+The Axios instance in `src/services/api.js` is the shared API client:
 
 ```js
 baseURL: "http://localhost:5000";
@@ -286,7 +317,8 @@ baseURL: "http://localhost:5000";
 `AuthContext` / `api.js`:
 
 ```text
-GET /users?email=<email>&password=<password>
+GET /users?email=<email>
+POST /users
 ```
 
 `CourseContext`:
@@ -298,30 +330,29 @@ PUT    /courses/:id
 DELETE /courses/:id
 ```
 
-No request interceptor, token header, environment-based API URL, or centralized error-normalization layer exists.
+Additional contexts implement their own mock-backed data flows:
+
+- `EnrollmentContext` uses `/enrollments`
+- `SubmissionContext` uses `/submissions`
+- `NotificationContext` uses `/notifications`
 
 ### Effective persistence boundary
 
 API-backed today:
 
 - User lookup during login
-- Course catalog loading
-- Course CRUD functions exposed by `CourseContext`
+- Course catalog loading and CRUD
+- Enrollment records and progress mutation
+- Submission fetch/add/grade operations
+- Notification fetch and read-state updates
 
-Not currently API-backed despite collections existing in `db.json`:
+Still mock or UI-only in practice:
 
-- Enrollments
-- Assignment submissions
-- Notifications
-- Roster membership
-- User registration
-- Password changes
-- Course progress
-- Module completion
-- Certificate data
-- Admin grading changes
-
-When implementing one of these workflows, preserve the existing Axios client and add the smallest appropriate service/context boundary rather than scattering raw requests across unrelated components.
+- registration as a real persisted account flow
+- password recovery/reset persistence
+- certificate generation data
+- progress completion beyond the current context flow
+- any workflow that relies on unimplemented server-side validation
 
 ## 8. Seed Data Contracts
 
@@ -331,15 +362,13 @@ The source of truth for mock data is `mock-api/db.json`.
 
 ```json
 {
-  "id": 1,
+  "id": "1",
   "name": "Jane Doe",
   "email": "student@email.com",
   "password": "password123",
   "role": "student"
 }
 ```
-
-Roles currently used: `student` and `admin`.
 
 ### Courses
 
@@ -362,17 +391,11 @@ Roles currently used: `student` and `admin`.
 }
 ```
 
-Seed course IDs:
-
-- `fs202` - Full Stack Development
-- `ds301` - Data Structures
-- `cs101` - Intro to Computer Science
-
 ### Submissions
 
 ```json
 {
-  "id": 1,
+  "id": "1",
   "student": "Jane Doe",
   "course": "Full Stack Development",
   "assignmentTitle": "Build a REST API",
@@ -388,7 +411,7 @@ Seed course IDs:
 
 ```json
 {
-  "id": 1,
+  "id": "1",
   "userId": 1,
   "courseId": "fs202",
   "progress": 85,
@@ -400,123 +423,83 @@ Seed course IDs:
 
 ```json
 {
-  "id": 1,
+  "id": "1",
   "userId": 1,
   "message": "Your assignment 'Variables & Loops' has been graded.",
-  "isRead": false,
+  "isRead": true,
   "date": "2026-09-10T10:00:00Z"
 }
 ```
 
-The API data uses `name`, `title`, `description`, and `category`. Do not introduce aliases such as `username`, `courseName`, or `overview` without a deliberate normalization layer.
+The app expects `name`, `title`, `description`, and `category` to be present on the relevant records. The code uses fallback values when older or partial records are encountered.
 
 ## 9. Page and Component Responsibilities
 
 ### Shared components
 
-- `Navbar.jsx`: sticky global navigation, responsive collapse menu, role-dependent links, logout action. Uses `AuthContext`.
+- `Navbar.jsx`: sticky global navigation, responsive menu, role-dependent links, and logout handling.
 - `Footer.jsx`: global footer.
-- `ProtectedRoute.jsx`: authentication and optional admin-role guard. Uses `AuthContext`.
-- `ScrollToTop.jsx`: scroll reset on route changes.
-- `CourseCard.jsx`: Chakra card that expects props `id`, `title`, `description`, `category`, and optional `imageUrl`; links to `/courses/:id`.
+- `ProtectedRoute.jsx`: authentication and role guard.
+- `ScrollToTop.jsx`: route-based scroll reset.
+- `CourseCard.jsx`: card component for catalog rows using `id`, `title`, `description`, `category`, and `imageUrl`.
 
 ### Context and service files
 
-- `AuthContext.jsx`: reads/restores session, delegates login/logout, exposes auth state.
-- `CourseContext.jsx`: fetches and mutates `/courses`; maintains loading/error state.
-- `api.js`: Axios instance plus local-storage session helpers and login request.
+- `AuthContext.jsx`: restores session state, exposes login/register/logout, and validates expected roles.
+- `CourseContext.jsx`: fetches and mutates course data with CRUD actions.
+- `EnrollmentContext.jsx`: loads per-student enrollments and supports enrollment/progress updates.
+- `SubmissionContext.jsx`: loads submissions and grades them.
+- `NotificationContext.jsx`: loads notifications and marks them as read.
+- `api.js`: shared Axios instance plus localStorage session helpers.
 
 ### Student pages
 
-- `Home.jsx`: home experience.
+- `Home.jsx`: landing page.
 - `Login.jsx`: student login.
-- `Register.jsx`: registration-like UI; no user creation.
-- `Dashboard.jsx`: student dashboard; uses auth user and local dashboard data.
-- `Courses.jsx`: catalog view; intended to consume `useCourses`.
-- `CourseDetails.jsx`: uses a local mock database, not `CourseContext`.
-- `EnrollmentSuccess.jsx`: confirmation page; navigation only, no enrollment mutation.
-- `MyCourses.jsx`: local course enrollment/progress presentation.
-- `CourseContent.jsx`: local roadmap and module completion state.
-- `VideoPlayer.jsx`: local video/module completion state.
-- `CourseMaterials.jsx`: local materials data and disabled download actions.
-- `Assignments.jsx`: local assignment selection and submission status.
-- `Notifications.jsx`: local notification list and read state.
-- `Certificate.jsx`: local certificate data and browser print flow.
-- `ForgotPassword.jsx`: recovery simulation.
-- `ResetPassword.jsx`: reset simulation.
+- `Register.jsx`: student registration form.
+- `Dashboard.jsx`: student dashboard.
+- `Courses.jsx`: course catalog page backed by `useCourses`.
+- `CourseDetails.jsx`: course detail page with enrollment action.
+- `EnrollmentSuccess.jsx`: enrollment confirmation page.
+- `MyCourses.jsx`: student course progression view.
+- `CourseContent.jsx`: learning roadmap and module progression.
+- `VideoPlayer.jsx`: module/video player screen.
+- `CourseMaterials.jsx`: materials view.
+- `Assignments.jsx`: student assignment submission UI.
+- `Notifications.jsx`: notification list.
+- `Certificate.jsx`: certificate display.
+- `ForgotPassword.jsx`: mock password recovery flow.
+- `ResetPassword.jsx`: mock password reset flow.
 
 ### Admin pages
 
-- `AdminLogin.jsx`: admin login UI; still uses shared auth lookup.
-- `AdminRegister.jsx`: simulated admin registration/login flow.
-- `AdminDashboard.jsx`: local metrics and activity data.
-- `AdminCourses.jsx`: local course list and admin actions; does not currently use `CourseContext`.
-- `CourseForm.jsx`: local form state, module add/remove UI, console logging on submit; does not call course CRUD functions.
-- `CourseRoster.jsx`: local roster; removal is not persisted.
-- `AdminAssignments.jsx`: local submission review and grading; changes are not persisted.
+- `AdminLogin.jsx`: admin login form.
+- `AdminRegister.jsx`: simulated faculty registration.
+- `AdminDashboard.jsx`: metrics and pending-grading summary.
+- `AdminCourses.jsx`: admin course list and delete flow.
+- `CourseForm.jsx`: add/edit course form with normalized course payloads.
+- `CourseRoster.jsx`: course roster display and drop student flow.
+- `AdminAssignments.jsx`: review and grade student submissions.
 
-## 10. Known Contract Mismatches and Defects
+## 10. Current Project Reality
 
-These are current facts to check before treating a workflow as complete.
+The app is a functional mock-driven prototype, not a production authentication or content platform.
 
-### Catalog prop mismatch
+### What is implemented well
 
-`CourseContext` receives API courses shaped like:
+- role-aware login and route protection
+- course catalog fetching and CRUD through the mock API
+- enrollment and progress tracking for students
+- assignment review and grading via the mock data layer
+- notification and dashboard flows
 
-```text
-{ id, title, description, category, ... }
-```
+### Important constraints
 
-`Courses.jsx` currently passes these legacy fields to `CourseCard`:
-
-```text
-image, courseName, overview, courseKey
-```
-
-`CourseCard.jsx` expects:
-
-```text
-id, title, description, category, imageUrl
-```
-
-Consequences include missing card text and links such as `/courses/undefined`. This is a high-priority integration defect. Fix the contract at the narrowest boundary, then run lint/build and verify `/courses` manually.
-
-### Duplicate and divergent course sources
-
-`CourseDetails.jsx` has a separate hard-coded database. It differs from `db.json` in instructor, category, duration, descriptions, and modules. It also uses `ds300`, while the API seed course is `ds301`.
-
-Other learning pages contain additional local course/progress data. Before unifying these screens, decide whether API data or a normalized frontend model is the source of truth.
-
-### Theme is inactive
-
-`theme.js` defines a dark Chakra theme with a teal `brand` palette, typography, global styles, and component defaults. However, `main.jsx` currently renders `<ChakraProvider>` without importing or passing the custom theme:
-
-```jsx
-<ChakraProvider>
-```
-
-Do not assume the settings in `theme.js` are active. A future theme change requires wiring the theme into `ChakraProvider` and checking for visual regressions.
-
-### Styling is mixed/legacy
-
-The active code primarily uses Chakra components and style props. `src/styles/` contains older CSS files with legacy selectors and Bootstrap-like class names. Most of those files are not imported. `Courses.jsx` still uses `container`, `row`, and `col-md-*` class names even though no Bootstrap dependency is declared, so those classes should not be assumed to style anything.
-
-`index.css` contains global body/selection styles and imports Inter from Google Fonts. Verify actual imports before editing styling infrastructure.
-
-### Prototype actions are not persistence
-
-The following interactions currently update only local state or navigate:
-
-- Enroll Now
-- Registration
-- Password reset
-- Mark module/video complete
-- Submit assignment
-- Grade assignment
-- Mark notification read
-- Download course materials
-- Remove roster member
-- Add/edit/delete admin course through admin screens
+- localStorage is used for session persistence
+- mock API data is plain JSON, not a hardened backend
+- some flows are still prototype-level UI and may not represent full persistence
+- no automated tests are configured in the repo
+- the app is intentionally designed around the mock API rather than a production authentication contract
 
 Do not describe these as backend functionality in UI copy or documentation until they are wired to API operations.
 
