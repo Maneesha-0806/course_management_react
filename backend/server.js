@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const morgan = require("morgan");
 const courseRoutes = require("./routes/courseRoutes");
+const authRoutes = require("./routes/authRoutes");
 const notFound = require("./middleware/notFoundMiddleware");
 const errorHandler = require("./middleware/errorMiddleware");
 
@@ -24,6 +25,7 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ success: true, message: "Backend is healthy", timestamp: new Date().toISOString() });
 });
 
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/courses", courseRoutes);
 
 app.use(notFound); 

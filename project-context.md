@@ -1,57 +1,71 @@
 # AcademiaX Project Context
 
-This document is the working context for coding agents modifying this repository. It describes the current implementation as it exists in the workspace, including prototype behavior and known inconsistencies. Treat the source code as authoritative when this document and the implementation disagree, and update this document when a significant architectural change is completed.
+This document describes the implementation currently present in the repository. Source code and configuration are authoritative if this document becomes stale. Update this file when a significant architecture, route, data-contract, or persistence change is made.
 
-## 1. Project Identity
+## 1. Project overview
 
-- Product name: AcademiaX
-- Product type: React single-page course management and e-learning application
+- Product: AcademiaX
+- Type: React single-page course-management and e-learning application
 - Repository root: `course_management_system_react`
-- Frontend directory: `academiax-frontend`
-- Mock backend directory: `mock-api`
-- Primary users: students and faculty administrators
-- Current maturity: functional prototype / coursework project, not production-ready
-- Language: JavaScript and JSX using ES modules in the frontend
-- Backend: local `json-server` database with a small REST API
+- Frontend: `academiax-frontend`
+- Course API: `backend`
+- Mock data API: `mock-api`
+- Current maturity: coursework/prototype application, not production-ready
+- Languages: JavaScript, JSX, and CommonJS JavaScript in the backend
+- UI library: Chakra UI
+- Frontend build tool: Vite
 
-The application is intended to cover two related experiences:
+The application has two role-oriented experiences:
 
-1. Student experience: browse courses, enroll, view learning content, submit assignments, see notifications, and obtain certificates.
-2. Admin/faculty experience: view dashboard metrics, manage courses, inspect rosters, and review assignments.
+1. Students can browse courses, enroll, view learning content, submit assignments, read notifications, and view certificates.
+2. Admin/faculty users can view dashboard metrics, manage courses, inspect rosters, and review or grade assignments.
 
-The implementation is hybrid. Authentication and the course catalog are partially connected to the mock API. Many other screens are visually complete prototypes backed by hard-coded data or component-local state. Do not assume that a visible action is persisted merely because it looks like a real workflow.
+The implementation currently uses two independent local APIs:
 
-## 2. Workspace Layout
+- The frontend course context calls the Express service in `backend` on port `5005`.
+- Authentication and the enrollment, submission, and notification contexts call json-server in `mock-api` at the hard-coded Axios base URL `http://localhost:5000`.
+
+The Express backend does not currently provide authentication, users, enrollments, submissions, or notifications. The frontend therefore has a split data model and split persistence behavior.
+
+## 2. Repository layout
 
 ```text
 course_management_system_react/
-├── project-context.md             # This agent context document
-├── academiax-frontend/            # Vite React application
+├── project-context.md
+├── academiax-frontend/
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── vite.config.js
 │   ├── eslint.config.js
 │   ├── index.html
-│   ├── README.md                  # Default Vite README; not product documentation
+│   ├── README.md              # Unmodified Vite template documentation
 │   ├── public/
-│   ├── dist/                      # Generated build output; ignored by ESLint
 │   └── src/
-│       ├── App.jsx                # Route table and shared shell
-│       ├── main.jsx               # React root and provider tree
-│       ├── index.css              # Global CSS imported by the entry point if applicable
-│       ├── theme.js               # Custom Chakra theme wired into ChakraProvider in main.jsx
+│       ├── App.jsx
+│       ├── main.jsx
+│       ├── index.css
+│       ├── theme.js
 │       ├── assets/
-│       ├── components/            # Shared UI and routing components
-│       ├── context/               # Auth and course state providers
-│       ├── pages/                 # Route-level screens
-│       ├── services/              # Axios client and session helpers
-│       └── styles/                # Legacy CSS files; generally not imported
+│       ├── components/
+│       ├── context/
+│       ├── pages/
+│       └── services/
+├── backend/
+│   ├── package.json
+│   ├── server.js
+│   ├── controllers/
+│   ├── data/
+│   ├── middleware/
+│   ├── routes/
+│   └── services/
 └── mock-api/
-    ├── db.json                    # Seed data for json-server
+    ├── db.json
     └── package.json
 ```
 
-## 3. Technology and Commands
+There is no `src/styles` directory in the current frontend. Global styling is in `academiax-frontend/src/index.css`; most page styling uses Chakra UI props.
+
+## 3. Technology and commands
 
 ### Frontend dependencies
 
@@ -74,48 +88,71 @@ Run from `academiax-frontend`:
 
 ```powershell
 npm install
-npm run dev       # Start Vite development server
+npm run dev       # Start Vite
 npm run build     # Build production assets
 npm run lint      # Run ESLint
-npm run preview   # Serve the production build locally
+npm run preview   # Serve the production build
 ```
 
-There is no configured frontend test runner or test script. There are currently no unit, integration, or end-to-end tests in the repository.
+No frontend test script or test runner is configured, and no automated tests are present in the repository.
 
-### Mock API setup
+### Express course API
 
-Run from `mock-api` in a second terminal:
+Run from `backend`:
 
 ```powershell
 npm install
-npx json-server --watch db.json --port 5000
+npm start         # node server.js
+npm run dev       # nodemon server.js
 ```
 
-The frontend Axios client is hard-coded to `http://localhost:5000`. The API must be running for login and course loading to work. There is no Vite proxy configured in `vite.config.js`, and `mock-api/package.json` has only a placeholder failing `test` script.
+`backend/server.js` always listens on port `5005`, regardless of environment variables. It enables CORS, JSON/urlencoded request parsing, Morgan logging, a root status response, health checking, course routes, and JSON error/not-found middleware.
 
-### Recommended validation sequence
+Useful endpoints:
+
+```text
+GET    http://localhost:5005/
+GET    http://localhost:5005/api/health
+GET    http://localhost:5005/api/v1/courses
+GET    http://localhost:5005/api/v1/courses/:id
+POST   http://localhost:5005/api/v1/courses
+PUT    http://localhost:5005/api/v1/courses/:id
+DELETE http://localhost:5005/api/v1/courses/:id
+```
+
+Course data is held in the Node process by `backend/data/courses.js`. Create, update, and delete operations mutate that in-memory array and are lost when the server restarts.
+
+### json-server mock API
+
+Run from `mock-api`:
 
 ```powershell
-cd c:\Users\manee\Documents\course_management_system_react\academiax-frontend
+npm install
+npm start         # json-server --watch db.json --port 5002
+```
+
+The package script starts json-server on port `5002`, but the frontend Axios client is hard-coded to port `5000`. For the frontend to reach the mock API, start json-server on port `5000` explicitly, or update the configuration as part of a deliberate change. There is no Vite proxy.
+
+The mock package has only a placeholder failing `test` script:
+
+```text
+npm test          # exits with "Error: no test specified"
+```
+
+### Recommended validation
+
+From `academiax-frontend`:
+
+```powershell
 npm run lint
 npm run build
 ```
 
-For behavior checks, start the mock API, then start Vite and manually verify:
+For manual integration checks, run the Express API on `5005` and json-server on `5000`, then start Vite. Verify course loading, student/admin login, enrollment, assignment submission/grading, notifications, and role redirects.
 
-1. `/courses` loads with API data.
-2. Student login works with the seed credentials.
-3. Admin login works with the seed credentials.
-4. Admin-only routes reject a student.
-5. Logout clears the session and navigates to `/login`.
-6. Course detail links use valid course IDs.
-7. Production preview loads after `npm run build`.
+## 4. Frontend runtime architecture
 
-## 4. Runtime Architecture
-
-The application entry point is `academiax-frontend/src/main.jsx`.
-
-Actual provider tree in the live app:
+The entry point is `academiax-frontend/src/main.jsx`.
 
 ```text
 ChakraProvider theme={theme}
@@ -128,440 +165,327 @@ ChakraProvider theme={theme}
                         └── App
 ```
 
-`App.jsx` renders the shared shell around every route:
+`App.jsx` renders the same global shell around all routes:
 
 ```text
 ScrollToTop
 Navbar
-main -> Routes -> route page
+main -> Routes
 Footer
 ```
 
-This means the navbar and footer are part of the global layout for all pages, including auth and admin views. `ScrollToTop` resets scroll position whenever the route changes.
+This includes public, student, and admin pages. `ScrollToTop` resets the scroll position when the location changes. Unknown paths render `NotFound`.
 
-### State ownership
+### Global contexts
 
-Authentication state is global in `AuthContext` and exposes the following values:
-
-```js
-{
-  (user, isInitializing, login, register, logout);
-}
-```
-
-Course state is global in `CourseContext` and exposes:
+`AuthContext` exposes:
 
 ```js
 {
-  (courses,
-    loading,
-    error,
-    fetchCourses,
-    addCourse,
-    updateCourse,
-    deleteCourse);
+  user,
+  isInitializing,
+  login,
+  register,
+  logout
 }
 ```
 
-The app also keeps additional feature state in: `EnrollmentContext`, `SubmissionContext`, and `NotificationContext`.
+`CourseContext` exposes:
 
-## 5. Routing Map
+```js
+{
+  courses,
+  loading,
+  error,
+  fetchCourses,
+  addCourse,
+  updateCourse,
+  deleteCourse
+}
+```
 
-Routes are declared centrally in `academiax-frontend/src/App.jsx`.
+`EnrollmentContext` exposes `enrollments`, `loading`, `enrollInCourse`, and `updateEnrollmentProgress`.
+
+`SubmissionContext` exposes `submissions`, `loading`, `error`, `addSubmission`, and `gradeSubmission`.
+
+`NotificationContext` exposes `notifications`, `loading`, `error`, and `markAsRead`.
+
+## 5. Route map
+
+Routes are declared in `academiax-frontend/src/App.jsx`.
 
 ### Public routes
 
-| Path               | Page             | Current purpose               |
-| ------------------ | ---------------- | ----------------------------- |
-| `/`                | `Home`           | Landing/home experience       |
-| `/login`           | `Login`          | Student login form            |
-| `/register`        | `Register`       | Student registration UI       |
-| `/courses`         | `Courses`        | Course catalog                |
-| `/courses/:id`     | `CourseDetails`  | Course detail view            |
-| `/forgot-password` | `ForgotPassword` | Password recovery simulation  |
-| `/reset-password`  | `ResetPassword`  | Password reset simulation     |
-| `/admin/login`     | `AdminLogin`     | Admin login form              |
-| `/admin/register`  | `AdminRegister`  | Admin registration simulation |
+| Path | Page | Purpose |
+| --- | --- | --- |
+| `/` | `Home` | Landing page |
+| `/login` | `Login` | Student login |
+| `/register` | `Register` | Student registration |
+| `/courses` | `Courses` | Course catalog |
+| `/courses/:id` | `CourseDetails` | Course details and enrollment |
+| `/forgot-password` | `ForgotPassword` | Password-recovery UI |
+| `/reset-password` | `ResetPassword` | Password-reset UI |
+| `/admin/login` | `AdminLogin` | Admin login |
+| `/admin/register` | `AdminRegister` | Admin registration UI |
 
 ### Protected student routes
 
-All student routes below are wrapped in `ProtectedRoute requiredRole="student"`:
+Each route requires `ProtectedRoute requiredRole="student"`.
 
-| Path                                  | Page                | Current purpose         |
-| ------------------------------------- | ------------------- | ----------------------- |
-| `/dashboard`                          | `Dashboard`         | Student dashboard       |
-| `/enrollment-success`                 | `EnrollmentSuccess` | Enrollment confirmation |
-| `/learning/:courseId`                 | `CourseContent`     | Learning content        |
-| `/materials`                          | `CourseMaterials`   | Course materials        |
-| `/learning/:courseId/video/:moduleId` | `VideoPlayer`       | Video/module view       |
-| `/my-courses`                         | `MyCourses`         | Student course list     |
-| `/assignments`                        | `Assignments`       | Student assignment UI   |
-| `/notifications`                      | `Notifications`     | Student notifications   |
-| `/certificate/:courseId`              | `Certificate`       | Certificate display     |
+| Path | Page | Purpose |
+| --- | --- | --- |
+| `/dashboard` | `Dashboard` | Student dashboard |
+| `/enrollment-success` | `EnrollmentSuccess` | Enrollment confirmation |
+| `/learning/:courseId` | `CourseContent` | Course learning content |
+| `/materials` | `CourseMaterials` | Course materials |
+| `/learning/:courseId/video/:moduleId` | `VideoPlayer` | Module/video view |
+| `/my-courses` | `MyCourses` | Enrolled course list |
+| `/assignments` | `Assignments` | Submit assignments and view grades |
+| `/notifications` | `Notifications` | Student notifications |
+| `/certificate/:courseId` | `Certificate` | Certificate display |
 
 ### Protected admin routes
 
-All admin routes below are wrapped in `ProtectedRoute requiredRole="admin"`:
+Each route requires `ProtectedRoute requiredRole="admin"`.
 
-| Path                        | Page               | Current purpose        |
-| --------------------------- | ------------------ | ---------------------- |
-| `/admin/dashboard`          | `AdminDashboard`   | Faculty/admin overview |
-| `/admin/courses`            | `AdminCourses`     | Course management      |
-| `/admin/courses/new`        | `CourseForm`       | New course creation    |
-| `/admin/courses/:id/edit`   | `CourseForm`       | Edit course            |
-| `/admin/courses/:id/roster` | `CourseRoster`     | Course roster review   |
-| `/admin/assignments`        | `AdminAssignments` | Assignment grading     |
+| Path | Page | Purpose |
+| --- | --- | --- |
+| `/admin/dashboard` | `AdminDashboard` | Faculty metrics and pending grading |
+| `/admin/courses` | `AdminCourses` | Course CRUD list |
+| `/admin/courses/new` | `CourseForm` | Create a course |
+| `/admin/courses/:id/edit` | `CourseForm` | Edit a course |
+| `/admin/courses/:id/roster` | `CourseRoster` | View/manage a course roster |
+| `/admin/assignments` | `AdminAssignments` | Review and grade submissions |
 
-There is an explicit catch-all route:
+## 6. Authentication and authorization
 
-```jsx
-<Route path="*" element={<NotFound />} />
-```
+Relevant files are `src/context/AuthContext.jsx`, `src/services/api.js`, and `src/components/ProtectedRoute.jsx`.
 
-So unmatched paths render the `NotFound` page instead of silently showing only the shell.
+### Session behavior
 
-## 6. Authentication and Authorization
+`AppState` stores the serialized user in `localStorage.user` and the fixed string `mock-jwt-token-12345` in `localStorage.token`. The token is not attached to requests and is only a local prototype marker.
 
-Relevant files:
+On startup, `AuthProvider` restores a user only if the stored object has both `id` and `role`; otherwise it clears the session. `isInitializing` prevents protected-route decisions before this check completes.
 
-- `src/context/AuthContext.jsx`
-- `src/services/api.js`
-- `src/components/ProtectedRoute.jsx`
-- `src/pages/Login.jsx`
-- `src/pages/AdminLogin.jsx`
-- `src/components/Navbar.jsx`
+### Login and registration
 
-### Session model
+- `loginUser(email, password)` calls json-server `GET /users?email=<email>`.
+- It compares the returned first user's plaintext password locally.
+- Successful login stores the user and mock token.
+- `AuthContext.login(email, password, expectedRole)` rejects a successful response when its role does not match the login screen's expected role.
+- `registerUser(userData)` checks for an existing email with `GET /users`, then creates a user with `POST /users` and immediately starts a local session.
 
-`api.js` exposes `AppState` helpers using browser `localStorage`:
-
-- `user`: serialized user object
-- `token`: fixed string `mock-jwt-token-12345`
-
-The token is mock-only and is not attached to real Axios requests. It is used as a lightweight local session marker for the front-end prototype only.
-
-On startup, `AuthContext` restores the saved user and sets `isInitializing` false once the check finishes. `ProtectedRoute` waits while initialization is running and then validates access.
-
-### Login flow
-
-1. The login page calls `login(email, password, expectedRole)` from `AuthContext`.
-2. `AuthContext` calls `loginUser` in `services/api.js`.
-3. `loginUser` queries the mock API:
+Seed accounts in `mock-api/db.json`:
 
 ```text
-GET http://localhost:5000/users?email=<email>
+Student: student@email.com / password123
+Admin:   test@academiax.edu / password123
 ```
 
-4. The returned user is checked against the submitted password.
-5. If the role matches the expected role, the user is saved to local storage and React auth state.
-6. The app redirects to the correct dashboard or route after success.
+There is also a seeded student account:
 
-### Role enforcement
+```text
+Student: maneeshaca08@gmail.com / 123456
+```
 
-The live implementation does enforce the role argument.
+### Route guard behavior
+
+- Unauthenticated users go to `/login` for student routes or `/admin/login` for admin routes.
+- A non-admin attempting an admin route is sent to `/dashboard`.
+- A non-student attempting a student route is sent to `/admin/dashboard`.
+- Admin users cannot enroll through the course-details flow.
+
+Passwords are plaintext in the mock database. This is not production authentication. Password recovery/reset screens are UI simulations and do not update a stored password.
+
+## 7. API boundaries and persistence
+
+### Shared json-server client
+
+`src/services/api.js` creates an Axios client with:
 
 ```js
-if (expectedRole && response.user.role !== expectedRole) {
-  AppState.clearSession();
-  return {
-    success: false,
-    message: "This account does not have access to this login.",
-  };
-}
+baseURL: "http://localhost:5000"
 ```
 
-This is used by both student and admin login forms.
-
-### Seed credentials
-
-Student:
+It is used by:
 
 ```text
-email: student@email.com
-password: password123
-role: student
+AuthContext:
+  GET /users?email=...
+  GET /users?email=...       # duplicate-email check
+  POST /users
+
+EnrollmentContext:
+  GET /enrollments?userId=...
+  POST /enrollments
+  PUT /enrollments/:id
+
+SubmissionContext:
+  GET /submissions?student=...
+  GET /submissions
+  POST /submissions
+  PUT /submissions/:id
+
+NotificationContext:
+  GET /notifications?userId=...
+  PUT /notifications/:id
 ```
 
-Admin:
+These records are persisted by json-server in `mock-api/db.json` while that service is running.
 
-```text
-email: test@academiax.edu
-password: password123
-role: admin
-```
+### Express course client
 
-### Guard behavior
-
-- No valid user: redirect to the relevant login page.
-- `requiredRole="admin"` and non-admin user: redirect to `/dashboard`.
-- `requiredRole="student"` and non-student user: redirect to `/admin/dashboard`.
-- A student cannot access an admin protected route.
-- The route guard is the real source of enforcement; the login screen is also role-aware.
-
-### Important auth caveats
-
-- Passwords are stored in plaintext in `db.json` for this mock environment.
-- Registration and password-reset screens do not yet create or update real user records in the backend.
-- This is still a frontend prototype, not a production authentication system.
-
-## 7. API and Persistence
-
-The Axios instance in `src/services/api.js` is the shared API client:
+`CourseContext.jsx` creates a separate Axios instance:
 
 ```js
-baseURL: "http://localhost:5000";
+baseURL: "http://localhost:5005"
 ```
 
-### Implemented client operations
+It calls `/api/v1/courses` for initial loading and course CRUD. The Express service returns course arrays under `response.data.data`, and the context unwraps that field.
 
-`AuthContext` / `api.js`:
+The Express course store is in memory, so it is independent of the `courses` collection in `mock-api/db.json`. The two stores currently contain different records and schemas.
 
-```text
-GET /users?email=<email>
-POST /users
-```
+### Current data-contract mismatch
 
-`CourseContext`:
+The frontend accepts both `title` and `courseName` in several views. The Express seed data uses `title`; the mock database includes both:
 
-```text
-GET    /courses
-POST   /courses
-PUT    /courses/:id
-DELETE /courses/:id
-```
+- `fs202` and `6OqU1TM2-fw` use `courseName`/`courseCode` style fields.
+- `cs101` uses `title` and includes modules.
 
-Additional contexts implement their own mock-backed data flows:
+The Express seed uses `fs202` and `ds301`, while the mock database uses `fs202`, `cs101`, and `6OqU1TM2-fw`. Course details and enrollment can therefore depend on which API supplies the course list, and IDs are not fully consistent across stores.
 
-- `EnrollmentContext` uses `/enrollments`
-- `SubmissionContext` uses `/submissions`
-- `NotificationContext` uses `/notifications`
+`CourseForm` sends the Express-required fields `title`, `category`, `instructor`, `description`, and `status`. Express validates `title`, `instructor`, `category`, and `description` only on POST.
 
-### Effective persistence boundary
+## 8. Seed data
 
-API-backed today:
+`mock-api/db.json` currently contains these collections:
 
-- User lookup during login
-- Course catalog loading and CRUD
-- Enrollment records and progress mutation
-- Submission fetch/add/grade operations
-- Notification fetch and read-state updates
+- `users`: two original demo accounts plus the seeded `maneeshaca08@gmail.com` student.
+- `courses`: three records with mixed field shapes (`title` versus `courseName`).
+- `submissions`: four records, including pending and graded examples.
+- `enrollments`: four records using mixed numeric/string `userId` values.
+- `notifications`: two read notifications for user ID `1`.
 
-Still mock or UI-only in practice:
-
-- registration as a real persisted account flow
-- password recovery/reset persistence
-- certificate generation data
-- progress completion beyond the current context flow
-- any workflow that relies on unimplemented server-side validation
-
-## 8. Seed Data Contracts
-
-The source of truth for mock data is `mock-api/db.json`.
-
-### Users
+The important record shapes are:
 
 ```json
 {
-  "id": "1",
-  "name": "Jane Doe",
-  "email": "student@email.com",
-  "password": "password123",
-  "role": "student"
+  "user": {
+    "id": "1",
+    "name": "Jane Doe",
+    "email": "student@email.com",
+    "password": "password123",
+    "role": "student"
+  },
+  "enrollment": {
+    "userId": 1,
+    "courseId": "fs202",
+    "progress": 85,
+    "status": "Ongoing"
+  },
+  "submission": {
+    "student": "Jane Doe",
+    "course": "Full Stack Development",
+    "assignmentTitle": "Build a REST API",
+    "status": "Pending",
+    "content": "Submission text or URL",
+    "grade": "",
+    "feedback": ""
+  },
+  "notification": {
+    "userId": 1,
+    "message": "Your assignment has been graded.",
+    "isRead": true
+  }
 }
 ```
 
-### Courses
+`backend/data/courses.js` is a separate in-memory array containing:
 
-```json
-{
-  "id": "fs202",
-  "title": "Full Stack Development",
-  "category": "Engineering",
-  "instructor": "Prof. Alan Turing",
-  "status": "Active",
-  "totalEnrolled": 142,
-  "description": "Learn to build modern web applications from frontend to backend.",
-  "modules": [
-    {
-      "id": "m1",
-      "title": "HTML & CSS Fundamentals",
-      "duration": "2 weeks"
-    }
-  ]
-}
-```
+- `fs202`: Full Stack Development
+- `ds301`: Data Structures
 
-### Submissions
-
-```json
-{
-  "id": "1",
-  "student": "Jane Doe",
-  "course": "Full Stack Development",
-  "assignmentTitle": "Build a REST API",
-  "date": "Oct 14, 2026",
-  "status": "Pending",
-  "content": "Submission text or URL",
-  "grade": "",
-  "feedback": ""
-}
-```
-
-### Enrollments
-
-```json
-{
-  "id": "1",
-  "userId": 1,
-  "courseId": "fs202",
-  "progress": 85,
-  "status": "Ongoing"
-}
-```
-
-### Notifications
-
-```json
-{
-  "id": "1",
-  "userId": 1,
-  "message": "Your assignment 'Variables & Loops' has been graded.",
-  "isRead": true,
-  "date": "2026-09-10T10:00:00Z"
-}
-```
-
-The app expects `name`, `title`, `description`, and `category` to be present on the relevant records. The code uses fallback values when older or partial records are encountered.
-
-## 9. Page and Component Responsibilities
+## 9. Page and component responsibilities
 
 ### Shared components
 
-- `Navbar.jsx`: sticky global navigation, responsive menu, role-dependent links, and logout handling.
+- `Navbar.jsx`: sticky responsive navigation, role-specific links, and logout.
 - `Footer.jsx`: global footer.
-- `ProtectedRoute.jsx`: authentication and role guard.
-- `ScrollToTop.jsx`: route-based scroll reset.
-- `CourseCard.jsx`: card component for catalog rows using `id`, `title`, `description`, `category`, and `imageUrl`.
+- `ProtectedRoute.jsx`: session initialization, authentication, and role checks.
+- `ScrollToTop.jsx`: scroll reset on route changes.
+- `CourseCard.jsx`: catalog card and link to course details.
 
-### Context and service files
+### Context/service files
 
-- `AuthContext.jsx`: restores session state, exposes login/register/logout, and validates expected roles.
-- `CourseContext.jsx`: fetches and mutates course data with CRUD actions.
-- `EnrollmentContext.jsx`: loads per-student enrollments and supports enrollment/progress updates.
-- `SubmissionContext.jsx`: loads submissions and grades them.
-- `NotificationContext.jsx`: loads notifications and marks them as read.
-- `api.js`: shared Axios instance plus localStorage session helpers.
+- `AuthContext.jsx`: session restoration, login, registration, and logout.
+- `CourseContext.jsx`: Express-backed course loading and CRUD.
+- `EnrollmentContext.jsx`: per-student enrollment loading, enrollment creation, and progress updates.
+- `SubmissionContext.jsx`: student/admin submission loading, creation, and grading.
+- `NotificationContext.jsx`: student notification loading and read-state updates.
+- `api.js`: json-server Axios client and localStorage session helpers.
 
 ### Student pages
 
 - `Home.jsx`: landing page.
-- `Login.jsx`: student login.
-- `Register.jsx`: student registration form.
-- `Dashboard.jsx`: student dashboard.
-- `Courses.jsx`: course catalog page backed by `useCourses`.
-- `CourseDetails.jsx`: course detail page with enrollment action.
-- `EnrollmentSuccess.jsx`: enrollment confirmation page.
-- `MyCourses.jsx`: student course progression view.
-- `CourseContent.jsx`: learning roadmap and module progression.
-- `VideoPlayer.jsx`: module/video player screen.
-- `CourseMaterials.jsx`: materials view.
-- `Assignments.jsx`: student assignment submission UI.
-- `Notifications.jsx`: notification list.
+- `Login.jsx`, `Register.jsx`: student account flows.
+- `Dashboard.jsx`: student overview.
+- `Courses.jsx`: Express-backed catalog; accepts both course naming schemas.
+- `CourseDetails.jsx`: course information, modules, and json-server enrollment.
+- `EnrollmentSuccess.jsx`: post-enrollment confirmation.
+- `MyCourses.jsx`, `CourseContent.jsx`, `VideoPlayer.jsx`, `CourseMaterials.jsx`: learning/progress views.
+- `Assignments.jsx`: submission form for enrolled courses and submission history.
+- `Notifications.jsx`: notification list and read actions.
 - `Certificate.jsx`: certificate display.
-- `ForgotPassword.jsx`: mock password recovery flow.
-- `ResetPassword.jsx`: mock password reset flow.
+- `ForgotPassword.jsx`, `ResetPassword.jsx`: non-persistent recovery/reset UI.
 
 ### Admin pages
 
-- `AdminLogin.jsx`: admin login form.
-- `AdminRegister.jsx`: simulated faculty registration.
-- `AdminDashboard.jsx`: metrics and pending-grading summary.
-- `AdminCourses.jsx`: admin course list and delete flow.
-- `CourseForm.jsx`: add/edit course form with normalized course payloads.
-- `CourseRoster.jsx`: course roster display and drop student flow.
-- `AdminAssignments.jsx`: review and grade student submissions.
+- `AdminLogin.jsx`, `AdminRegister.jsx`: admin account screens.
+- `AdminDashboard.jsx`: combines Express course count, json-server enrollment count, and json-server pending submissions.
+- `AdminCourses.jsx`: Express-backed course list and deletion.
+- `CourseForm.jsx`: Express-backed create/edit form.
+- `CourseRoster.jsx`: roster view/drop-student UI.
+- `AdminAssignments.jsx`: json-server submission review and grading modal.
 
-## 10. Current Project Reality
+## 10. Known limitations and inconsistencies
 
-The app is a functional mock-driven prototype, not a production authentication or content platform.
+- The frontend has no environment-based API URLs; both service URLs are hard-coded.
+- `mock-api/package.json` starts json-server on `5002`, but frontend requests port `5000`.
+- The Express backend and json-server both have a courses collection, but the frontend course context uses only Express.
+- Express course data is in memory and disappears on restart.
+- Course records use inconsistent names and IDs across the two stores.
+- The mock token is neither generated nor sent to an API.
+- Passwords are stored and compared in plaintext.
+- Registration persists through json-server, but password reset does not.
+- Enrollment, submissions, and notifications have no backend authorization checks.
+- Several pages use browser `alert`/`confirm` for feedback.
+- Loading and error handling is implemented in contexts/pages, but not every action exposes a detailed error to the user.
+- No automated unit, integration, or end-to-end tests are configured.
+- The root `README.md` is still the default Vite template and is not product documentation.
 
-### What is implemented well
+Do not describe the current implementation as a production backend, secure authentication system, or fully unified persistence layer.
 
-- role-aware login and route protection
-- course catalog fetching and CRUD through the mock API
-- enrollment and progress tracking for students
-- assignment review and grading via the mock data layer
-- notification and dashboard flows
+## 11. Guidance for future changes
 
-### Important constraints
+1. Locate the owning route, page, context, or service before editing.
+2. Preserve the existing JavaScript/JSX and Chakra UI patterns.
+3. Use the existing `api.js` client for json-server resources and the existing `expressApi` in `CourseContext` for Express course resources unless the task explicitly unifies them.
+4. Keep public paths, protected-role behavior, and seeded IDs stable unless a migration is intentional.
+5. Normalize course fields at a clear boundary instead of spreading additional schema fallbacks across pages.
+6. Keep loading, empty, and error states visible.
+7. Do not add security claims to this prototype; document any new persistence or authorization behavior.
+8. Avoid unrelated CSS rewrites, generated output, dependency folders, or API migrations.
+9. Do not commit `dist` output or installed dependency directories.
 
-- localStorage is used for session persistence
-- mock API data is plain JSON, not a hardened backend
-- some flows are still prototype-level UI and may not represent full persistence
-- no automated tests are configured in the repo
-- the app is intentionally designed around the mock API rather than a production authentication contract
+## 12. Definition of done
 
-Do not describe these as backend functionality in UI copy or documentation until they are wired to API operations.
+For a normal feature or bug fix:
 
-## 11. Coding Guidance for Agents
-
-1. Start by locating the owning component/context for the requested behavior. The route file often only wires a page; the actual decision is usually in the page, context, or `api.js`.
-2. Preserve the existing JavaScript/JSX style unless the task explicitly requests migration.
-3. Prefer Chakra UI components and style props for new UI because that is the active implementation style.
-4. Reuse `AuthContext`, `CourseContext`, and the shared Axios instance instead of duplicating state or HTTP setup.
-5. Keep public route paths and seeded IDs stable unless the requested feature requires a route/data migration.
-6. Normalize data at a clear boundary. Do not make every consumer support multiple spellings for the same field.
-7. Keep API failures visible through existing loading/error patterns. Avoid silently substituting unrelated mock data for failed requests.
-8. Remember that local component state is intentionally common in the prototype, but document or test any new persistence boundary.
-9. Avoid adding real security claims. The current local auth is a demo mechanism only.
-10. Keep edits focused. Do not rewrite the legacy CSS directory or migrate all pages to an API unless the task explicitly requires that scope.
-11. Use descriptive variable names and follow the existing React hooks patterns.
-12. Do not commit generated `dist` output or dependency folders.
-
-## 12. Suggested Priorities for Future Work
-
-When several improvements are possible, this order reduces the most user-visible inconsistency first:
-
-1. Repair the course catalog data contract between `Courses`, `CourseCard`, and `db.json`.
-2. Unify course detail data with the API course model and correct `ds300`/`ds301`.
-3. Wire the custom Chakra theme intentionally or remove/update the inactive theme file.
-4. Normalize the user display field (`name` versus `username`) and enforce role-specific login semantics.
-5. Protect authenticated student routes consistently.
-6. Move enrollment, submissions, notifications, and progress to API-backed services/contexts.
-7. Connect admin course forms to the already-existing `CourseContext` CRUD methods.
-8. Add route-level loading/error/empty states and a 404 route.
-9. Add focused tests around auth guards, catalog rendering, and course CRUD before broad UI refactors.
-
-## 13. Definition of Done for Changes
-
-For a normal feature or bug fix, an agent should be able to answer yes to the following:
-
-- The change is made in the component/context/service that owns the behavior.
-- Existing routes and role guards still behave as intended.
-- API-backed behavior uses the shared Axios client and the correct `db.json` field names.
-- Loading, empty, and error states are handled where the request can fail.
+- The owning component/context/service is changed.
+- Existing public routes and role guards still work.
+- The correct local API and response shape are used.
+- Relevant loading, empty, and error states are preserved.
 - `npm run lint` passes.
 - `npm run build` passes.
-- Any workflow that depends on port 5000 has been checked with the mock API running.
-- New persistence or data-contract changes are reflected in this document.
-- No unrelated legacy CSS or generated output was changed without a reason.
-
-## 14. Quick Reference
-
-```text
-Frontend: c:\Users\manee\Documents\course_management_system_react\academiax-frontend
-Mock API: c:\Users\manee\Documents\course_management_system_react\mock-api
-API URL:  http://localhost:5000
-Dev URL:  usually http://localhost:5173
-
-Student: student@email.com / password123
-Admin:   test@academiax.edu / password123
-
-Primary entry:     academiax-frontend/src/main.jsx
-Route table:       academiax-frontend/src/App.jsx
-Auth state:        academiax-frontend/src/context/AuthContext.jsx
-Course state:      academiax-frontend/src/context/CourseContext.jsx
-HTTP/session:      academiax-frontend/src/services/api.js
-API seed data:     mock-api/db.json
-Route guard:       academiax-frontend/src/components/ProtectedRoute.jsx
-```
+- Manual API-dependent behavior is checked with Express on `5005` and json-server on `5000`.
+- Related data-contract or persistence changes are reflected in this document.

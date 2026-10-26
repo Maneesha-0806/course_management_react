@@ -1,68 +1,69 @@
-import { createContext, useState, useEffect } from 'react';
-// Import the helper functions we just built in api.js
-import { AppState, loginUser, logoutUser, registerUser } from '../services/api';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { createContext, useContext, useState, useEffect } from 'react';
+import apiClient from '../services/apiClient';
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Check local storage when the app first loads
   useEffect(() => {
-    const storedUser = AppState.getUser();
-    if (storedUser && storedUser.id && storedUser.role) {
-      setUser(storedUser);
-    } else {
-      AppState.clearSession();
+    // Restore session from browser storage on load
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    if (storedUser && storedToken) {
+      setUser(JSON.parse(storedUser));
     }
     setIsInitializing(false);
   }, []);
 
   const login = async (email, password, expectedRole) => {
     try {
-      const response = await loginUser(email, password);
+      // Task 9: Call the new Express login API
+      const response = await apiClient.post('/auth/login', { email, password });
+      const { student, token } = response.data;
+      
+      // To keep your frontend routing happy, we append the requested role 
+      // (Since Express currently treats everyone as a student)
+      const userWithRole = { ...student, role: expectedRole || 'student' };
 
-      if (response.success) {
-        const authenticatedUser = response.user;
-        const userRole = authenticatedUser?.role;
-
-        if (expectedRole && userRole && userRole !== expectedRole) {
-          AppState.clearSession();
-          setUser(null);
-          return { success: false, message: 'This account does not have access to this login.' };
-        }
-
-        if (!userRole) {
-          AppState.clearSession();
-          setUser(null);
-          return { success: false, message: 'Unable to determine account access.' };
-        }
-
-        setUser(authenticatedUser);
-        return { success: true, user: authenticatedUser };
-      }
-
-      return { success: false, message: response.message };
-
+      // Task 10: Store the real JWT token
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userWithRole));
+      
+      setUser(userWithRole);
+      return { success: true };
     } catch (error) {
-      console.error("Login failed:", error);
-      return { success: false, message: "An unexpected error occurred." };
+      console.error("Login Error:", error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Login failed. Check your credentials.' 
+      };
     }
   };
 
   const register = async (userData) => {
-    const response = await registerUser(userData);
-    if (response.success) {
-      setUser(response.user);
+    try {
+      // Task 9: Call the new Express register API
+      await apiClient.post('/auth/register', userData);
+      return { success: true };
+    } catch (error) {
+      console.error("Registration Error:", error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Registration failed.' 
+      };
     }
-    return response;
   };
 
   const logout = () => {
-    logoutUser(); // Clears localStorage via api.js
-    setUser(null); // Clears the React state
+    // Task 10: Implement logout functionality
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    window.location.href = '/login';
   };
 
   return (
@@ -71,3 +72,6 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = () => useContext(AuthContext);

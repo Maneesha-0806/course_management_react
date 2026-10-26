@@ -1,17 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../services/apiClient'; // Import the secure client
 
 const CourseContext = createContext(null);
-
-// Create a specific Axios instance for the Express backend
-const expressApi = axios.create({ baseURL: "http://localhost:5005" });
 
 export const CourseProvider = ({ children }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch courses when the app loads
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
     fetchCourses();
@@ -20,8 +16,8 @@ export const CourseProvider = ({ children }) => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await expressApi.get('/api/v1/courses');
-      // Express nests the array inside response.data.data
+      // apiClient already knows the baseURL is http://localhost:5005/api/v1
+      const response = await apiClient.get('/courses');
       setCourses(response.data.data); 
     } catch (err) {
       console.error("Error fetching courses:", err);
@@ -33,18 +29,18 @@ export const CourseProvider = ({ children }) => {
 
   const addCourse = async (courseData) => {
     try {
-      const response = await expressApi.post('/api/v1/courses', courseData);
+      const response = await apiClient.post('/courses', courseData);
       setCourses((prev) => [...prev, response.data.data]);
       return { success: true };
     } catch (err) {
       console.error("Error adding course:", err);
-      return { success: false, message: "Failed to add course." };
+      return { success: false, message: "Failed to add course. Unauthorized." };
     }
   };
 
   const updateCourse = async (id, courseData) => {
     try {
-      const response = await expressApi.put(`/api/v1/courses/${id}`, courseData);
+      const response = await apiClient.put(`/courses/${id}`, courseData);
       setCourses((prev) => prev.map((c) => (c.id === id ? response.data.data : c)));
       return { success: true };
     } catch (err) {
@@ -55,7 +51,7 @@ export const CourseProvider = ({ children }) => {
 
   const deleteCourse = async (id) => {
     try {
-      await expressApi.delete(`/api/v1/courses/${id}`);
+      await apiClient.delete(`/courses/${id}`);
       setCourses((prev) => prev.filter((c) => c.id !== id));
       return { success: true };
     } catch (err) {
@@ -66,15 +62,7 @@ export const CourseProvider = ({ children }) => {
 
   return (
     <CourseContext.Provider 
-      value={{ 
-        courses, 
-        loading, 
-        error, 
-        fetchCourses, 
-        addCourse, 
-        updateCourse, 
-        deleteCourse 
-      }}
+      value={{ courses, loading, error, fetchCourses, addCourse, updateCourse, deleteCourse }}
     >
       {children}
     </CourseContext.Provider>
