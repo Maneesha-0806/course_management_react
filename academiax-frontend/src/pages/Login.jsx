@@ -1,60 +1,62 @@
-import { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import { Alert, Box, Button, Container, FormControl, FormLabel, Heading, Input, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
+import { useState } from 'react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Box, Button, FormControl, FormLabel, Input, Heading, Text, VStack, Link, Alert, AlertIcon } from '@chakra-ui/react';
+import { useAuth } from '../context/AuthContext';
 
-const Login = () => {
+function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // 1. Bring in global state and routing hooks
-  const { login } = useContext(AuthContext);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  // 2. Handle the button click
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevents the browser from reloading the page
-    
+    e.preventDefault();
     setError('');
+    setLoading(true);
+
+    // Call the new Express API via AuthContext
     const result = await login(email, password, 'student');
+
     if (result.success) {
       navigate('/dashboard');
     } else {
       setError(result.message);
     }
+    setLoading(false);
   };
 
   return (
-    <Container maxW="md" py={12}>
-      <Box bg="gray.800" borderTopWidth="4px" borderColor="brand.400" rounded="lg" p={8} shadow="lg">
-        <Heading size="md" textAlign="center" color="brand.300" mb={8}>Student Login</Heading>
-        {error && <Alert status="error" mb={5}>{error}</Alert>}
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={5}>
-            <FormControl isRequired><FormLabel>Email Address</FormLabel><Input 
-              type="email" 
-              placeholder="student@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            /></FormControl>
-            <FormControl isRequired><FormLabel>Password</FormLabel><Input 
-              type="password" 
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            /></FormControl>
-            <Button type="submit" width="full">Secure Login</Button>
-          </Stack>
-        </form>
-        <Stack textAlign="center" mt={6} spacing={2} fontSize="sm" color="gray.400">
-          <Text>New Student? <ChakraLink as={Link} to="/register" color="brand.300">Create an Account</ChakraLink></Text>
-          <Text>Forgot password? <ChakraLink as={Link} to="/forgot-password?role=student" color="brand.300">Reset here</ChakraLink></Text>
-          <Text borderTopWidth="1px" borderColor="whiteAlpha.200" pt={3}>Faculty / Admin? <ChakraLink as={Link} to="/admin/login" color="red.300">Login here</ChakraLink></Text>
-        </Stack>
-      </Box>
-    </Container>
+    <Box maxW="md" mx="auto" mt={10} p={6} borderWidth={1} borderRadius="lg" boxShadow="lg">
+      <Heading size="lg" mb={6} textAlign="center">Student Login</Heading>
+      
+      {error && <Alert status="error" mb={4}><AlertIcon />{error}</Alert>}
+
+      <form onSubmit={handleSubmit}>
+        <VStack spacing={4}>
+          <FormControl isRequired>
+            <FormLabel>Email</FormLabel>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="student@example.com" />
+          </FormControl>
+          
+          <FormControl isRequired>
+            <FormLabel>Password</FormLabel>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" />
+          </FormControl>
+
+          <Button type="submit" colorScheme="blue" width="full" isLoading={loading}>
+            Log In
+          </Button>
+        </VStack>
+      </form>
+      
+      <Text mt={4} textAlign="center">
+        Need an account? <Link as={RouterLink} to="/register" color="blue.500">Register</Link>
+      </Text>
+    </Box>
   );
-};
+}
 
 export default Login;
